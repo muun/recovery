@@ -1,0 +1,17 @@
+# Mac OS X finder
+.DS_Store
+
+# Vim swap files
+*~
+.*.sw[a-z]
+
+# VS code
+.vscode
+
+# Goland
+.idea
+
+# Golang
+/bin
+/pkg
+/src
