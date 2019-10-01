@@ -2,12 +2,12 @@
 
 ## About
 
-You can use this tool to swipe all the balance in your muun account to an address of your choosing.
+You can use this tool to swipe all the funds in your muun account to an address of your choosing.
 
 To do this you will need:
 * The recovery code, that you set up when you created your muun account
 * The two encrypted private keys that you exported from your muun wallet
-* A destination bitcoin address where all your funds will be sent
+* A destination Bitcoin address where all your funds will be sent
 
 ## Setup
 
@@ -21,7 +21,7 @@ If you have any questions, contact us at contact@muun.com
 
 ## Auditing
 
-* Most of the key handling and transaction crafting operations happen in the **libwallet** module.
+* Most of the key handling and transaction crafting operations happens in the **libwallet** module.
 * All the blockchain scan code is in the **neutrino** module.
 
 ## Responsible Disclosure
