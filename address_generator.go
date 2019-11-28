@@ -8,8 +8,7 @@ import (
 )
 
 type signingDetails struct {
-	RedeemScript []byte
-	Address 	 libwallet.MuunAddress
+	Address libwallet.MuunAddress
 }
 
 type AddressGenerator struct {
@@ -82,21 +81,28 @@ func (g *AddressGenerator) deriveTree(rootUserKey, rootMuunKey *libwallet.HDPriv
 		addrV2, err := libwallet.CreateAddressV2(userKey.PublicKey(), muunKey.PublicKey())
 		if err == nil {
 			g.addrs[addrV2.Address()] = signingDetails{
-				RedeemScript: addrV2.(libwallet.RedeemableAddress).RedeemScript(),
 				Address: addrV2,
 			}
-		}  else {
+		} else {
 			log.Printf("failed to generate %v v2 for %v due to %v", name, i, err)
 		}
 
 		addrV3, err := libwallet.CreateAddressV3(userKey.PublicKey(), muunKey.PublicKey())
 		if err == nil {
 			g.addrs[addrV3.Address()] = signingDetails{
-				RedeemScript: addrV3.(libwallet.RedeemableAddress).RedeemScript(),
 				Address: addrV3,
 			}
-		}  else {
+		} else {
 			log.Printf("failed to generate %v v3 for %v due to %v", name, i, err)
+		}
+
+		addrV4, err := libwallet.CreateAddressV4(userKey.PublicKey(), muunKey.PublicKey())
+		if err == nil {
+			g.addrs[addrV4.Address()] = signingDetails{
+				Address: addrV4,
+			}
+		} else {
+			log.Printf("failed to generate %v v4 for %v due to %v", name, i, err)
 		}
 
 	}

@@ -326,7 +326,11 @@ func (i *input) MuunSignature() []byte {
 	return i.muunSignature
 }
 
-func (i *input) SubmarineSwap() libwallet.InputSubmarineSwap {
+func (i *input) SubmarineSwapV1() libwallet.InputSubmarineSwapV1 {
+	return nil
+}
+
+func (i *input) SubmarineSwapV2() libwallet.InputSubmarineSwapV2 {
 	return nil
 }
 

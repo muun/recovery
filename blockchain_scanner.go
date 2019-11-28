@@ -124,9 +124,9 @@ func startChainService() (*neutrino.ChainService, func(), error) {
 	os.MkdirAll(dirFolder, 0700)
 	dbPath := filepath.Join(dirFolder, "neutrino.db")
 
-	db, err := walletdb.Open("bdb", dbPath)
+	db, err := walletdb.Open("bdb", dbPath, true)
 	if err == walletdb.ErrDbDoesNotExist {
-		db, err = walletdb.Create("bdb", dbPath)
+		db, err = walletdb.Create("bdb", dbPath, true)
 		if err != nil {
 			panic(err)
 		}
@@ -234,7 +234,10 @@ func checkOutpoints(tx *btcutil.Tx, height int32) {
 					Spent:          false,
 					Satoshis:       output.Value,
 					SigningDetails: watchAddresses[addr.EncodeAddress()],
-					Outpoint:       wire.OutPoint{*hash, uint32(index)},
+					Outpoint:       wire.OutPoint{
+						Hash: *hash,
+						Index: uint32(index),
+					},
 				}
 
 				if _, ok := relevantTxs[relevantTx.Outpoint]; ok {
