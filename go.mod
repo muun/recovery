@@ -9,7 +9,7 @@ require (
 	github.com/btcsuite/btcwallet v0.10.0
 	github.com/btcsuite/btcwallet/walletdb v1.1.0
 	github.com/lightninglabs/neutrino v0.10.0
-	github.com/muun/libwallet v0.1.3
+	github.com/muun/libwallet v0.1.4
 	github.com/pkg/errors v0.8.1
 )
 

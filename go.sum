@@ -22,7 +22,6 @@ github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d h1:yJzD/yFppdVCf6
 github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d/go.mod h1:+5NJ2+qvTyV9exUAL/rxXi3DcLg2Ts+ymUAY5y4NvMg=
 github.com/btcsuite/btcwallet v0.10.0 h1:fFZncfYJ7VByePTGttzJc3qfCyDzU95ucZYk0M912lU=
 github.com/btcsuite/btcwallet v0.10.0/go.mod h1:4TqBEuceheGNdeLNrelliLHJzmXauMM2vtWfuy1pFiM=
-github.com/btcsuite/btcwallet v0.10.1-0.20191109031858-c49e7ef3ecf1/go.mod h1:4TqBEuceheGNdeLNrelliLHJzmXauMM2vtWfuy1pFiM=
 github.com/btcsuite/btcwallet/wallet/txauthor v1.0.0/go.mod h1:VufDts7bd/zs3GV13f/lXc/0lXrPnvxD/NvmpG/FEKU=
 github.com/btcsuite/btcwallet/wallet/txrules v1.0.0/go.mod h1:UwQE78yCerZ313EXZwEiu3jNAtfXj2n2+c8RWiE/WNA=
 github.com/btcsuite/btcwallet/wallet/txsizes v1.0.0/go.mod h1:pauEU8UuMFiThe5PB3EO+gO5kx87Me5NvdQDsTuq6cs=
@@ -107,6 +106,8 @@ github.com/ltcsuite/ltcutil v0.0.0-20181217130922-17f3b04680b6/go.mod h1:8Vg/LTO
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/miekg/dns v0.0.0-20171125082028-79bfde677fa8 h1:PRMAcldsl4mXKJeRNB/KVNz6TlbS6hk2Rs42PqgU3Ws=
 github.com/miekg/dns v0.0.0-20171125082028-79bfde677fa8/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
+github.com/muun/libwallet v0.1.4 h1:C8cd7+xe8TzgSuOovKbwAzFIGjjZvnyYr8HtlydEm80=
+github.com/muun/libwallet v0.1.4/go.mod h1:eOp7//0x8kWLXWuUyRtQlJ5WN0ZIaQNhL9++LOincrM=
 github.com/muun/neutrino v0.0.0-20190914162326-7082af0fa257 h1:NW17wq2gZlEFeW3/Zx3wSmqlD0wKGf7YvhpP+CNCsbE=
 github.com/muun/neutrino v0.0.0-20190914162326-7082af0fa257/go.mod h1:awTrhbCWjWNH4yVwZ4IE7nZbvpQ27e7OyD+jao7wRxA=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
