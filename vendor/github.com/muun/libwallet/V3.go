@@ -24,7 +24,6 @@ func CreateAddressV3(userKey, muunKey *HDPublicKey) (MuunAddress, error) {
 		address:        address.EncodeAddress(),
 		version:        addressV3,
 		derivationPath: userKey.Path,
-		redeemScript:   redeemScript,
 	}, nil
 }
 
@@ -47,7 +46,6 @@ func addUserSignatureInputV3(input Input, index int, tx *wire.MsgTx, privateKey 
 	if len(input.MuunSignature()) == 0 {
 		return nil, errors.Errorf("muun signature must be present")
 	}
-
 
 	witnessScript, err := createWitnessScriptV3(privateKey.PublicKey(), muunKey)
 	if err != nil {
@@ -77,7 +75,7 @@ func signInputV3(input Input, index int, tx *wire.MsgTx, userKey *HDPublicKey, m
 
 	redeemScript, err := createRedeemScriptV3(userKey, muunKey)
 	if err != nil {
-		return nil,  errors.Wrapf(err, "failed to build reedem script for signing")
+		return nil, errors.Wrapf(err, "failed to build reedem script for signing")
 	}
 
 	return signNonNativeSegwitInput(input, index, tx, signingKey, redeemScript, witnessScript)

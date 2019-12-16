@@ -39,9 +39,9 @@ func NewHDPrivateKeyFromBytes(rawKey, chainCode []byte, network *Network) (*HDPr
 
 // NewHDPrivateKeyFromString creates an HD priv key from a base58-encoded string
 // If the parsed key is public, it returns an error
-func NewHDPrivateKeyFromString(str, path string) (*HDPrivateKey, error) {
+func NewHDPrivateKeyFromString(str, path string, network *Network) (*HDPrivateKey, error) {
 
-	key, network, err := keyFromString(str)
+	key, _, err := keyFromString(str)
 	if err != nil {
 		return nil, err
 	}

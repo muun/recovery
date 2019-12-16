@@ -1,18 +1,18 @@
 # github.com/aead/siphash v1.0.1
 github.com/aead/siphash
-# github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
+# github.com/btcsuite/btcd v0.20.1-beta
+github.com/btcsuite/btcd/addrmgr
+github.com/btcsuite/btcd/blockchain
+github.com/btcsuite/btcd/btcec
 github.com/btcsuite/btcd/btcjson
 github.com/btcsuite/btcd/chaincfg
 github.com/btcsuite/btcd/chaincfg/chainhash
+github.com/btcsuite/btcd/connmgr
+github.com/btcsuite/btcd/database
+github.com/btcsuite/btcd/peer
 github.com/btcsuite/btcd/rpcclient
 github.com/btcsuite/btcd/txscript
 github.com/btcsuite/btcd/wire
-github.com/btcsuite/btcd/btcec
-github.com/btcsuite/btcd/addrmgr
-github.com/btcsuite/btcd/blockchain
-github.com/btcsuite/btcd/connmgr
-github.com/btcsuite/btcd/peer
-github.com/btcsuite/btcd/database
 # github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f
 github.com/btcsuite/btclog
 # github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
@@ -22,12 +22,12 @@ github.com/btcsuite/btcutil/bech32
 github.com/btcsuite/btcutil/gcs
 github.com/btcsuite/btcutil/gcs/builder
 github.com/btcsuite/btcutil/hdkeychain
-# github.com/btcsuite/btcwallet v0.0.0-20190911065739-d5cdeb4b91b0
+# github.com/btcsuite/btcwallet v0.10.0
 github.com/btcsuite/btcwallet/chain
-github.com/btcsuite/btcwallet/waddrmgr
 github.com/btcsuite/btcwallet/internal/zero
 github.com/btcsuite/btcwallet/snacl
-# github.com/btcsuite/btcwallet/walletdb v1.0.0
+github.com/btcsuite/btcwallet/waddrmgr
+# github.com/btcsuite/btcwallet/walletdb v1.1.0
 github.com/btcsuite/btcwallet/walletdb
 github.com/btcsuite/btcwallet/walletdb/bdb
 github.com/btcsuite/btcwallet/walletdb/migration
@@ -49,21 +49,21 @@ github.com/golang/protobuf/proto
 github.com/kkdai/bstream
 # github.com/lightninglabs/gozmq v0.0.0-20190710231225-cea2a031735d
 github.com/lightninglabs/gozmq
-# github.com/lightninglabs/neutrino v0.0.0-20190910092203-46d9c1c55f44 => github.com/muun/neutrino v0.0.0-20190914162326-7082af0fa257
+# github.com/lightninglabs/neutrino v0.10.0 => github.com/muun/neutrino v0.0.0-20190914162326-7082af0fa257
 github.com/lightninglabs/neutrino
-github.com/lightninglabs/neutrino/headerfs
 github.com/lightninglabs/neutrino/banman
 github.com/lightninglabs/neutrino/blockntfns
 github.com/lightninglabs/neutrino/cache
 github.com/lightninglabs/neutrino/cache/lru
 github.com/lightninglabs/neutrino/chainsync
 github.com/lightninglabs/neutrino/filterdb
+github.com/lightninglabs/neutrino/headerfs
 github.com/lightninglabs/neutrino/headerlist
 github.com/lightninglabs/neutrino/pushtx
-# github.com/lightningnetwork/lnd v0.7.1-beta-rc2
-github.com/lightningnetwork/lnd/zpay32
+# github.com/lightningnetwork/lnd v0.8.0-beta
 github.com/lightningnetwork/lnd/lnwire
 github.com/lightningnetwork/lnd/tor
+github.com/lightningnetwork/lnd/zpay32
 # github.com/lightningnetwork/lnd/queue v1.0.1
 github.com/lightningnetwork/lnd/queue
 # github.com/lightningnetwork/lnd/ticker v1.0.0
@@ -71,23 +71,21 @@ github.com/lightningnetwork/lnd/ticker
 # github.com/miekg/dns v0.0.0-20171125082028-79bfde677fa8
 github.com/miekg/dns
 github.com/miekg/dns/internal/socket
-# github.com/muun/libwallet v0.1.2
+# github.com/muun/libwallet v0.1.4
 github.com/muun/libwallet
 # github.com/pkg/errors v0.8.1
 github.com/pkg/errors
 # golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
-golang.org/x/crypto/ripemd160
-golang.org/x/crypto/scrypt
-golang.org/x/crypto/pbkdf2
-golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/internal/subtle
+golang.org/x/crypto/nacl/secretbox
+golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/poly1305
+golang.org/x/crypto/ripemd160
 golang.org/x/crypto/salsa20/salsa
+golang.org/x/crypto/scrypt
 # golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
-golang.org/x/net/proxy
 golang.org/x/net/internal/socks
+golang.org/x/net/proxy
 # golang.org/x/sys v0.0.0-20190904154756-749cb33beabd
-golang.org/x/sys/unix
 golang.org/x/sys/cpu
-# google.golang.org/grpc v1.18.0
-google.golang.org/grpc/codes
+golang.org/x/sys/unix

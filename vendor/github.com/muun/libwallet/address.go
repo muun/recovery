@@ -13,20 +13,27 @@ import (
 	"github.com/pkg/errors"
 )
 
+// These constants are here for clients usage.
+const (
+	AddressVersionSwapsV1 = 101
+	AddressVersionSwapsV2 = 102
+)
+
 type AddressVersion int
 
 const (
-	addressV1            AddressVersion = 1
-	addressV2            AddressVersion = 2
-	addressV3            AddressVersion = 3
-	addressSubmarineSwap AddressVersion = 101
+	addressV1              AddressVersion = 1
+	addressV2              AddressVersion = 2
+	addressV3              AddressVersion = 3
+	addressV4              AddressVersion = 4
+	addressSubmarineSwapV1 AddressVersion = AddressVersionSwapsV1
+	addressSubmarineSwapV2 AddressVersion = AddressVersionSwapsV2
 )
 
 type muunAddress struct {
 	version        AddressVersion
 	derivationPath string
 	address        string
-	redeemScript   []byte
 }
 
 func newMuunAddress(version AddressVersion, userPublicKey, muunPublicKey *HDPublicKey) (MuunAddress, error) {
@@ -41,8 +48,12 @@ func newMuunAddress(version AddressVersion, userPublicKey, muunPublicKey *HDPubl
 		return CreateAddressV2(userPublicKey, muunPublicKey)
 	case addressV3:
 		return CreateAddressV3(userPublicKey, muunPublicKey)
-	case addressSubmarineSwap:
-		return CreateAddressSubmarineSwap(userPublicKey)
+	case addressV4:
+		return CreateAddressV4(userPublicKey, muunPublicKey)
+	case addressSubmarineSwapV1:
+		return nil, errors.Errorf("can't manually create a submarine swap v1 address")
+	case addressSubmarineSwapV2:
+		return nil, errors.Errorf("can't manually create a submarine swap v2 address")
 	}
 
 	return nil, errors.Errorf("unknown version %v", version)
@@ -58,10 +69,6 @@ func (a *muunAddress) DerivationPath() string {
 
 func (a *muunAddress) Address() string {
 	return a.address
-}
-
-func (a *muunAddress) RedeemScript() []byte {
-	return a.redeemScript
 }
 
 // MuunPaymentURI is muun's uri struct
@@ -127,7 +134,7 @@ func GetPaymentURI(address string, network *Network) (*MuunPaymentURI, error) {
 		invoice, err := ParseInvoice(queryValues["lightning"][0], network)
 
 		if err == nil {
-			return &MuunPaymentURI{Invoice:invoice}, nil
+			return &MuunPaymentURI{Invoice: invoice}, nil
 		}
 	}
 
@@ -240,9 +247,7 @@ func getAddressFromScript(script []byte, network *Network) (string, error) {
 func normalizeAddress(rawAddress string) string {
 	newAddress := rawAddress
 
-	if strings.Contains(newAddress, muunScheme) {
-		newAddress = strings.Replace(newAddress, muunScheme, bitcoinScheme, 1)
-	}
+	newAddress = strings.Replace(newAddress, muunScheme, bitcoinScheme, 1)
 
 	if !strings.Contains(newAddress, bitcoinScheme) {
 		newAddress = bitcoinScheme + rawAddress

@@ -46,7 +46,7 @@ const (
 	FlagUpdate FailCode = 0x1000
 )
 
-// FailCode specifies the precise reason that an upstream HTLC was cancelled.
+// FailCode specifies the precise reason that an upstream HTLC was canceled.
 // Each UpdateFailHTLC message carries a FailCode which is to be passed
 // backwards, encrypted at each step back to the source of the HTLC within the
 // route.
@@ -55,29 +55,29 @@ type FailCode uint16
 // The currently defined onion failure types within this current version of the
 // Lightning protocol.
 const (
-	CodeNone                          FailCode = 0
-	CodeInvalidRealm                           = FlagBadOnion | 1
-	CodeTemporaryNodeFailure                   = FlagNode | 2
-	CodePermanentNodeFailure                   = FlagPerm | FlagNode | 2
-	CodeRequiredNodeFeatureMissing             = FlagPerm | FlagNode | 3
-	CodeInvalidOnionVersion                    = FlagBadOnion | FlagPerm | 4
-	CodeInvalidOnionHmac                       = FlagBadOnion | FlagPerm | 5
-	CodeInvalidOnionKey                        = FlagBadOnion | FlagPerm | 6
-	CodeTemporaryChannelFailure                = FlagUpdate | 7
-	CodePermanentChannelFailure                = FlagPerm | 8
-	CodeRequiredChannelFeatureMissing          = FlagPerm | 9
-	CodeUnknownNextPeer                        = FlagPerm | 10
-	CodeAmountBelowMinimum                     = FlagUpdate | 11
-	CodeFeeInsufficient                        = FlagUpdate | 12
-	CodeIncorrectCltvExpiry                    = FlagUpdate | 13
-	CodeExpiryTooSoon                          = FlagUpdate | 14
-	CodeChannelDisabled                        = FlagUpdate | 20
-	CodeUnknownPaymentHash                     = FlagPerm | 15
-	CodeIncorrectPaymentAmount                 = FlagPerm | 16
-	CodeFinalExpiryTooSoon            FailCode = 17
-	CodeFinalIncorrectCltvExpiry      FailCode = 18
-	CodeFinalIncorrectHtlcAmount      FailCode = 19
-	CodeExpiryTooFar                  FailCode = 21
+	CodeNone                             FailCode = 0
+	CodeInvalidRealm                              = FlagBadOnion | 1
+	CodeTemporaryNodeFailure                      = FlagNode | 2
+	CodePermanentNodeFailure                      = FlagPerm | FlagNode | 2
+	CodeRequiredNodeFeatureMissing                = FlagPerm | FlagNode | 3
+	CodeInvalidOnionVersion                       = FlagBadOnion | FlagPerm | 4
+	CodeInvalidOnionHmac                          = FlagBadOnion | FlagPerm | 5
+	CodeInvalidOnionKey                           = FlagBadOnion | FlagPerm | 6
+	CodeTemporaryChannelFailure                   = FlagUpdate | 7
+	CodePermanentChannelFailure                   = FlagPerm | 8
+	CodeRequiredChannelFeatureMissing             = FlagPerm | 9
+	CodeUnknownNextPeer                           = FlagPerm | 10
+	CodeAmountBelowMinimum                        = FlagUpdate | 11
+	CodeFeeInsufficient                           = FlagUpdate | 12
+	CodeIncorrectCltvExpiry                       = FlagUpdate | 13
+	CodeExpiryTooSoon                             = FlagUpdate | 14
+	CodeChannelDisabled                           = FlagUpdate | 20
+	CodeIncorrectOrUnknownPaymentDetails          = FlagPerm | 15
+	CodeIncorrectPaymentAmount                    = FlagPerm | 16
+	CodeFinalExpiryTooSoon               FailCode = 17
+	CodeFinalIncorrectCltvExpiry         FailCode = 18
+	CodeFinalIncorrectHtlcAmount         FailCode = 19
+	CodeExpiryTooFar                     FailCode = 21
 )
 
 // String returns the string representation of the failure code.
@@ -134,8 +134,8 @@ func (c FailCode) String() string {
 	case CodeChannelDisabled:
 		return "ChannelDisabled"
 
-	case CodeUnknownPaymentHash:
-		return "UnknownPaymentHash"
+	case CodeIncorrectOrUnknownPaymentDetails:
+		return "IncorrectOrUnknownPaymentDetails"
 
 	case CodeFinalExpiryTooSoon:
 		return "FinalExpiryTooSoon"
@@ -317,7 +317,7 @@ func (f *FailIncorrectPaymentAmount) Error() string {
 	return f.Code().String()
 }
 
-// FailUnknownPaymentHash is returned for two reasons:
+// FailIncorrectDetails is returned for two reasons:
 //
 // 1) if the payment hash has already been paid, the final node MAY treat the
 // payment hash as unknown, or may succeed in accepting the HTLC. If the
@@ -330,42 +330,56 @@ func (f *FailIncorrectPaymentAmount) Error() string {
 // gross overpayment.
 //
 // NOTE: May only be returned by the final node in the path.
-type FailUnknownPaymentHash struct {
+type FailIncorrectDetails struct {
 	// amount is the value of the extended HTLC.
 	amount MilliSatoshi
+
+	// height is the block height when the htlc was received.
+	height uint32
 }
 
-// NewFailUnknownPaymentHash makes a new instance of the FailUnknownPaymentHash
-// error bound to the specified HTLC amount.
-func NewFailUnknownPaymentHash(amt MilliSatoshi) *FailUnknownPaymentHash {
-	return &FailUnknownPaymentHash{
+// NewFailIncorrectDetails makes a new instance of the FailIncorrectDetails
+// error bound to the specified HTLC amount and acceptance height.
+func NewFailIncorrectDetails(amt MilliSatoshi,
+	height uint32) *FailIncorrectDetails {
+
+	return &FailIncorrectDetails{
 		amount: amt,
+		height: height,
 	}
 }
 
 // Amount is the value of the extended HTLC.
-func (f *FailUnknownPaymentHash) Amount() MilliSatoshi {
+func (f *FailIncorrectDetails) Amount() MilliSatoshi {
 	return f.amount
+}
+
+// Height is the block height when the htlc was received.
+func (f *FailIncorrectDetails) Height() uint32 {
+	return f.height
 }
 
 // Code returns the failure unique code.
 //
 // NOTE: Part of the FailureMessage interface.
-func (f *FailUnknownPaymentHash) Code() FailCode {
-	return CodeUnknownPaymentHash
+func (f *FailIncorrectDetails) Code() FailCode {
+	return CodeIncorrectOrUnknownPaymentDetails
 }
 
 // Returns a human readable string describing the target FailureMessage.
 //
 // NOTE: Implements the error interface.
-func (f *FailUnknownPaymentHash) Error() string {
-	return fmt.Sprintf("UnknownPaymentHash(amt=%v)", f.amount)
+func (f *FailIncorrectDetails) Error() string {
+	return fmt.Sprintf(
+		"%v(amt=%v, height=%v)", CodeIncorrectOrUnknownPaymentDetails,
+		f.amount, f.height,
+	)
 }
 
 // Decode decodes the failure from bytes stream.
 //
 // NOTE: Part of the Serializable interface.
-func (f *FailUnknownPaymentHash) Decode(r io.Reader, pver uint32) error {
+func (f *FailIncorrectDetails) Decode(r io.Reader, pver uint32) error {
 	err := ReadElement(r, &f.amount)
 	switch {
 	// This is an optional tack on that was added later in the protocol. As
@@ -379,14 +393,25 @@ func (f *FailUnknownPaymentHash) Decode(r io.Reader, pver uint32) error {
 		return err
 	}
 
+	// At a later stage, the height field was also tacked on. We need to
+	// check for io.EOF here as well.
+	err = ReadElement(r, &f.height)
+	switch {
+	case err == io.EOF:
+		return nil
+
+	case err != nil:
+		return err
+	}
+
 	return nil
 }
 
 // Encode writes the failure in bytes stream.
 //
 // NOTE: Part of the Serializable interface.
-func (f *FailUnknownPaymentHash) Encode(w io.Writer, pver uint32) error {
-	return WriteElement(w, f.amount)
+func (f *FailIncorrectDetails) Encode(w io.Writer, pver uint32) error {
+	return WriteElements(w, f.amount, f.height)
 }
 
 // FailFinalExpiryTooSoon is returned if the cltv_expiry is too low, the final
@@ -1113,10 +1138,16 @@ func DecodeFailure(r io.Reader, pver uint32) (FailureMessage, error) {
 
 	dataReader := bytes.NewReader(failureData)
 
+	return DecodeFailureMessage(dataReader, pver)
+}
+
+// DecodeFailureMessage decodes just the failure message, ignoring any padding
+// that may be present at the end.
+func DecodeFailureMessage(r io.Reader, pver uint32) (FailureMessage, error) {
 	// Once we have the failure data, we can obtain the failure code from
 	// the first two bytes of the buffer.
 	var codeBytes [2]byte
-	if _, err := io.ReadFull(dataReader, codeBytes[:]); err != nil {
+	if _, err := io.ReadFull(r, codeBytes[:]); err != nil {
 		return nil, fmt.Errorf("unable to read failure code: %v", err)
 	}
 	failCode := FailCode(binary.BigEndian.Uint16(codeBytes[:]))
@@ -1132,10 +1163,9 @@ func DecodeFailure(r io.Reader, pver uint32) (FailureMessage, error) {
 	// well.
 	switch f := failure.(type) {
 	case Serializable:
-		if err := f.Decode(dataReader, pver); err != nil {
+		if err := f.Decode(r, pver); err != nil {
 			return nil, fmt.Errorf("unable to decode error "+
-				"update (type=%T, len_bytes=%v, bytes=%x): %v",
-				failure, failureLength, failureData[:], err)
+				"update (type=%T): %v", failure, err)
 		}
 	}
 
@@ -1147,24 +1177,9 @@ func DecodeFailure(r io.Reader, pver uint32) (FailureMessage, error) {
 func EncodeFailure(w io.Writer, failure FailureMessage, pver uint32) error {
 	var failureMessageBuffer bytes.Buffer
 
-	// First, we'll write out the error code itself into the failure
-	// buffer.
-	var codeBytes [2]byte
-	code := uint16(failure.Code())
-	binary.BigEndian.PutUint16(codeBytes[:], code)
-	_, err := failureMessageBuffer.Write(codeBytes[:])
+	err := EncodeFailureMessage(&failureMessageBuffer, failure, pver)
 	if err != nil {
 		return err
-	}
-
-	// Next, some message have an additional message payload, if this is
-	// one of those types, then we'll also encode the error payload as
-	// well.
-	switch failure := failure.(type) {
-	case Serializable:
-		if err := failure.Encode(&failureMessageBuffer, pver); err != nil {
-			return err
-		}
 	}
 
 	// The combined size of this message must be below the max allowed
@@ -1185,6 +1200,32 @@ func EncodeFailure(w io.Writer, failure FailureMessage, pver uint32) error {
 		uint16(len(pad)),
 		pad,
 	)
+}
+
+// EncodeFailureMessage encodes just the failure message without adding a length
+// and padding the message for the onion protocol.
+func EncodeFailureMessage(w io.Writer, failure FailureMessage, pver uint32) error {
+	// First, we'll write out the error code itself into the failure
+	// buffer.
+	var codeBytes [2]byte
+	code := uint16(failure.Code())
+	binary.BigEndian.PutUint16(codeBytes[:], code)
+	_, err := w.Write(codeBytes[:])
+	if err != nil {
+		return err
+	}
+
+	// Next, some message have an additional message payload, if this is
+	// one of those types, then we'll also encode the error payload as
+	// well.
+	switch failure := failure.(type) {
+	case Serializable:
+		if err := failure.Encode(w, pver); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // makeEmptyOnionError creates a new empty onion error  of the proper concrete
@@ -1212,8 +1253,8 @@ func makeEmptyOnionError(code FailCode) (FailureMessage, error) {
 	case CodeUnknownNextPeer:
 		return &FailUnknownNextPeer{}, nil
 
-	case CodeUnknownPaymentHash:
-		return &FailUnknownPaymentHash{}, nil
+	case CodeIncorrectOrUnknownPaymentDetails:
+		return &FailIncorrectDetails{}, nil
 
 	case CodeIncorrectPaymentAmount:
 		return &FailIncorrectPaymentAmount{}, nil

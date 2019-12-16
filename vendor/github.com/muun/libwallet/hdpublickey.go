@@ -18,9 +18,9 @@ type HDPublicKey struct {
 
 // NewHDPublicKeyFromString creates an HD pub key from a base58-encoded string
 // If the parsed key is private, it returns an error
-func NewHDPublicKeyFromString(str, path string) (*HDPublicKey, error) {
+func NewHDPublicKeyFromString(str, path string, network *Network) (*HDPublicKey, error) {
 
-	key, network, err := keyFromString(str)
+	key, _, err := keyFromString(str)
 	if err != nil {
 		return nil, err
 	}

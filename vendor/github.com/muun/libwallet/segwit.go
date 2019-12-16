@@ -8,6 +8,22 @@ import (
 	"github.com/pkg/errors"
 )
 
+func signNativeSegwitInput(input Input, index int, tx *wire.MsgTx, privateKey *HDPrivateKey, witnessScript []byte) ([]byte, error) {
+
+	privKey, err := privateKey.key.ECPrivKey()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to produce EC priv key for signing")
+	}
+
+	sigHashes := txscript.NewTxSigHashes(tx)
+	sig, err := txscript.RawTxInWitnessSignature(tx, sigHashes, index, input.OutPoint().Amount(), witnessScript, txscript.SigHashAll, privKey)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to sign V4 input")
+	}
+
+	return sig, nil
+}
+
 func createNonNativeSegwitRedeemScript(witnessScript []byte) ([]byte, error) {
 	witnessScriptHash := sha256.Sum256(witnessScript)
 

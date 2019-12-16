@@ -55,22 +55,6 @@ func (m *Output) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Output proto.InternalMessageInfo
 
-const Default_Output_Amount uint64 = 0
-
-func (m *Output) GetAmount() uint64 {
-	if m != nil && m.Amount != nil {
-		return *m.Amount
-	}
-	return Default_Output_Amount
-}
-
-func (m *Output) GetScript() []byte {
-	if m != nil {
-		return m.Script
-	}
-	return nil
-}
-
 type PaymentDetails struct {
 	Network              *string   `protobuf:"bytes,1,opt,name=network,def=main" json:"network,omitempty"`
 	Outputs              []*Output `protobuf:"bytes,2,rep,name=outputs" json:"outputs,omitempty"`
@@ -153,13 +137,6 @@ func (m *PaymentDetails) GetPaymentUrl() string {
 	return ""
 }
 
-func (m *PaymentDetails) GetMerchantData() []byte {
-	if m != nil {
-		return m.MerchantData
-	}
-	return nil
-}
-
 type PaymentRequest struct {
 	PaymentDetailsVersion    *uint32  `protobuf:"varint,1,opt,name=payment_details_version,json=paymentDetailsVersion,def=1" json:"payment_details_version,omitempty"`
 	PkiType                  *string  `protobuf:"bytes,2,opt,name=pki_type,json=pkiType,def=none" json:"pki_type,omitempty"`
@@ -213,26 +190,6 @@ func (m *PaymentRequest) GetPkiType() string {
 	return Default_PaymentRequest_PkiType
 }
 
-func (m *PaymentRequest) GetPkiData() []byte {
-	if m != nil {
-		return m.PkiData
-	}
-	return nil
-}
-
-func (m *PaymentRequest) GetSerializedPaymentDetails() []byte {
-	if m != nil {
-		return m.SerializedPaymentDetails
-	}
-	return nil
-}
-
-func (m *PaymentRequest) GetSignature() []byte {
-	if m != nil {
-		return m.Signature
-	}
-	return nil
-}
 
 type X509Certificates struct {
 	Certificate          [][]byte `protobuf:"bytes,1,rep,name=certificate" json:"certificate,omitempty"`
@@ -308,12 +265,6 @@ func (m *Payment) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Payment proto.InternalMessageInfo
 
-func (m *Payment) GetMerchantData() []byte {
-	if m != nil {
-		return m.MerchantData
-	}
-	return nil
-}
 
 func (m *Payment) GetTransactions() [][]byte {
 	if m != nil {
@@ -368,13 +319,6 @@ func (m *PaymentACK) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_PaymentACK proto.InternalMessageInfo
-
-func (m *PaymentACK) GetPayment() *Payment {
-	if m != nil {
-		return m.Payment
-	}
-	return nil
-}
 
 func (m *PaymentACK) GetMemo() string {
 	if m != nil && m.Memo != nil {

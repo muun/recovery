@@ -3,6 +3,7 @@ package zpay32
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -67,6 +68,24 @@ const (
 
 	// fieldTypeC contains an optional requested final CLTV delta.
 	fieldTypeC = 24
+
+	// fieldType9 contains one or more bytes for signaling features
+	// supported or required by the receiver.
+	fieldType9 = 5
+
+	// maxInvoiceLength is the maximum total length an invoice can have.
+	// This is chosen to be the maximum number of bytes that can fit into a
+	// single QR code: https://en.wikipedia.org/wiki/QR_code#Storage
+	maxInvoiceLength = 7089
+)
+
+var (
+	// InvoiceFeatures holds the set of all known feature bits that are
+	// exposed as BOLT 11 features.
+	InvoiceFeatures = map[lnwire.FeatureBit]string{}
+
+	// ErrInvoiceTooLarge is returned when an invoice exceeds maxInvoiceLength.
+	ErrInvoiceTooLarge = errors.New("invoice is too large")
 )
 
 // MessageSigner is passed to the Encode method to provide a signature
@@ -146,6 +165,10 @@ type Invoice struct {
 	//
 	// NOTE: This is optional.
 	RouteHints [][]HopHint
+
+	// Features represents an optional field used to signal optional or
+	// required support for features by the receiver.
+	Features *lnwire.FeatureVector
 }
 
 // Amount is a functional option that allows callers of NewInvoice to set the
@@ -248,6 +271,12 @@ func NewInvoice(net *chaincfg.Params, paymentHash [32]byte,
 // it is valid by BOLT-0011 and matches the provided active network.
 func Decode(invoice string, net *chaincfg.Params) (*Invoice, error) {
 	decodedInvoice := Invoice{}
+
+	// Before bech32 decoding the invoice, make sure that it is not too large.
+	// This is done as an anti-DoS measure since bech32 decoding is expensive.
+	if len(invoice) > maxInvoiceLength {
+		return nil, ErrInvoiceTooLarge
+	}
 
 	// Decode the invoice using the modified bech32 decoder.
 	hrp, data, err := decodeBech32(invoice)
@@ -453,6 +482,12 @@ func (invoice *Invoice) Encode(signer MessageSigner) (string, error) {
 		return "", err
 	}
 
+	// Before returning, check that the bech32 encoded string is not greater
+	// than our largest supported invoice size.
+	if len(b32) > maxInvoiceLength {
+		return "", ErrInvoiceTooLarge
+	}
+
 	return b32, nil
 }
 
@@ -502,21 +537,6 @@ func validateInvoice(invoice *Invoice) error {
 	}
 	if invoice.Description == nil && invoice.DescriptionHash == nil {
 		return fmt.Errorf("neither description nor description hash set")
-	}
-
-	// We'll restrict invoices to include up to 20 different private route
-	// hints. We do this to avoid overly large invoices.
-	if len(invoice.RouteHints) > 20 {
-		return fmt.Errorf("too many private routes: %d",
-			len(invoice.RouteHints))
-	}
-
-	// Each route hint can have at most 20 hops.
-	for i, routeHint := range invoice.RouteHints {
-		if len(routeHint) > 20 {
-			return fmt.Errorf("route hint %d has too many extra "+
-				"hops: %d", i, len(routeHint))
-		}
 	}
 
 	// Check that we support the field lengths.
@@ -663,6 +683,14 @@ func parseTaggedFields(invoice *Invoice, fields []byte, net *chaincfg.Params) er
 			}
 
 			invoice.RouteHints = append(invoice.RouteHints, routeHint)
+		case fieldType9:
+			if invoice.Features != nil {
+				// We skip the field if we have already seen a
+				// supported one.
+				continue
+			}
+
+			invoice.Features, err = parseFeatures(base32Data)
 		default:
 			// Ignore unknown type.
 		}
@@ -848,6 +876,7 @@ func parseRouteHint(data []byte) ([]HopHint, error) {
 		return nil, err
 	}
 
+	// Check that base256Data is a multiple of hopHintLen.
 	if len(base256Data)%hopHintLen != 0 {
 		return nil, fmt.Errorf("expected length multiple of %d bytes, "+
 			"got %d", hopHintLen, len(base256Data))
@@ -872,6 +901,25 @@ func parseRouteHint(data []byte) ([]HopHint, error) {
 	}
 
 	return routeHint, nil
+}
+
+// parseFeatures decodes any feature bits directly from the base32
+// representation.
+func parseFeatures(data []byte) (*lnwire.FeatureVector, error) {
+	rawFeatures := lnwire.NewRawFeatureVector()
+	err := rawFeatures.DecodeBase32(bytes.NewReader(data), len(data))
+	if err != nil {
+		return nil, err
+	}
+
+	fv := lnwire.NewFeatureVector(rawFeatures, InvoiceFeatures)
+	unknownFeatures := fv.UnknownRequiredFeatures()
+	if len(unknownFeatures) > 0 {
+		return nil, fmt.Errorf("invoice contains unknown required "+
+			"features: %v", unknownFeatures)
+	}
+
+	return fv, nil
 }
 
 // writeTaggedFields writes the non-nil tagged fields of the Invoice to the
@@ -1011,7 +1059,7 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 		pubKeyBase32, err := bech32.ConvertBits(
 			invoice.Destination.SerializeCompressed(), 8, 5, true)
 		if err != nil {
-			return nil
+			return err
 		}
 
 		if len(pubKeyBase32) != pubKeyBase32Len {
@@ -1020,6 +1068,18 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 		}
 
 		err = writeTaggedField(bufferBase32, fieldTypeN, pubKeyBase32)
+		if err != nil {
+			return err
+		}
+	}
+	if invoice.Features != nil && invoice.Features.SerializeSize32() > 0 {
+		var b bytes.Buffer
+		err := invoice.Features.RawFeatureVector.EncodeBase32(&b)
+		if err != nil {
+			return err
+		}
+
+		err = writeTaggedField(bufferBase32, fieldType9, b.Bytes())
 		if err != nil {
 			return err
 		}

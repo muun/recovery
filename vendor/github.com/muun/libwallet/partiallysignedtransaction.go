@@ -25,11 +25,20 @@ type Outpoint interface {
 	Amount() int64
 }
 
-type InputSubmarineSwap interface {
+type InputSubmarineSwapV1 interface {
 	RefundAddress() string
 	PaymentHash256() []byte
 	ServerPublicKey() []byte
 	LockTime() int64
+}
+
+type InputSubmarineSwapV2 interface {
+	PaymentHash256() []byte
+	UserPublicKey() []byte
+	MuunPublicKey() []byte
+	ServerPublicKey() []byte
+	BlocksForExpiration() int64
+	ServerSignature() []byte
 }
 
 type Input interface {
@@ -37,7 +46,8 @@ type Input interface {
 	Address() MuunAddress
 	UserSignature() []byte
 	MuunSignature() []byte
-	SubmarineSwap() InputSubmarineSwap
+	SubmarineSwapV1() InputSubmarineSwapV1
+	SubmarineSwapV2() InputSubmarineSwapV2
 }
 
 type PartiallySignedTransaction struct {
@@ -93,8 +103,12 @@ func (p *PartiallySignedTransaction) Sign(key *HDPrivateKey, muunKey *HDPublicKe
 			txIn, err = addUserSignatureInputV2(input, i, p.tx, derivedKey, derivedMuunKey)
 		case addressV3:
 			txIn, err = addUserSignatureInputV3(input, i, p.tx, derivedKey, derivedMuunKey)
-		case addressSubmarineSwap:
-			txIn, err = addUserSignatureInputSubmarineSwap(input, i, p.tx, derivedKey, derivedMuunKey)
+		case addressV4:
+			txIn, err = addUserSignatureInputV4(input, i, p.tx, derivedKey, derivedMuunKey)
+		case addressSubmarineSwapV1:
+			txIn, err = addUserSignatureInputSubmarineSwapV1(input, i, p.tx, derivedKey, derivedMuunKey)
+		case addressSubmarineSwapV2:
+			txIn, err = addUserSignatureInputSubmarineSwapV2(input, i, p.tx, derivedKey, derivedMuunKey)
 		default:
 			return nil, errors.Errorf("cant sign transaction of version %v", input.Address().Version())
 		}
@@ -141,8 +155,12 @@ func (p *PartiallySignedTransaction) MuunSignatureForInput(index int, userKey *H
 		return signInputV2(input, index, p.tx, derivedUserKey, derivedMuunKey.PublicKey(), derivedMuunKey)
 	case addressV3:
 		return signInputV3(input, index, p.tx, derivedUserKey, derivedMuunKey.PublicKey(), derivedMuunKey)
-	case addressSubmarineSwap:
-		return nil, errors.New("cant sign arbitrary submarine swap inputs")
+	case addressV4:
+		return signInputV4(input, index, p.tx, derivedUserKey, derivedMuunKey.PublicKey(), derivedMuunKey)
+	case addressSubmarineSwapV1:
+		return nil, errors.New("cant sign arbitrary submarine swap v1 inputs")
+	case addressSubmarineSwapV2:
+		return nil, errors.New("cant sign arbitrary submarine swap v2 inputs")
 	}
 
 	return nil, errors.New("unknown address scheme")

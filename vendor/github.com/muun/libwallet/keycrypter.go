@@ -64,7 +64,7 @@ func KeyEncrypt(key *HDPrivateKey, passphrase string) (string, error) {
 }
 
 // KeyDecrypt decrypts a key encrypted with KeyEncrypt
-func KeyDecrypt(value, passphrase string) (*DecryptedKey, error) {
+func KeyDecrypt(value, passphrase string, network *Network) (*DecryptedKey, error) {
 
 	elements := strings.Split(value, seperator)
 
@@ -126,7 +126,7 @@ func KeyDecrypt(value, passphrase string) (*DecryptedKey, error) {
 	encodedPrivateKey := string(decryptedBytes[:])
 	path := string(pathBytes[:])
 
-	privateKey, err := NewHDPrivateKeyFromString(encodedPrivateKey, path)
+	privateKey, err := NewHDPrivateKeyFromString(encodedPrivateKey, path, network)
 	if err != nil {
 		return nil, errors.New("KeyCrypter: failed to decode pk: " + err.Error())
 	}

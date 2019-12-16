@@ -27,7 +27,7 @@ func ParseInvoice(invoice string, network *Network) (*Invoice, error) {
 
 	if strings.HasPrefix(strings.ToLower(invoice), lightningScheme) {
 		// Remove lightning scheme from rawInvoice
-		invoice = invoice[len(lightningScheme):len(invoice)]
+		invoice = invoice[len(lightningScheme):]
 	}
 
 	parsedInvoice, err := zpay32.Decode(invoice, network.network)

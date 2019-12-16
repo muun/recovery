@@ -24,7 +24,6 @@ func CreateAddressV2(userKey, muunKey *HDPublicKey) (MuunAddress, error) {
 		address:        address.String(),
 		version:        addressV2,
 		derivationPath: userKey.Path,
-		redeemScript:   script,
 	}, nil
 }
 
