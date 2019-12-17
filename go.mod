@@ -1,4 +1,4 @@
-module recovery_tool
+module github.com/muun/recovery_tool
 
 go 1.12
 
@@ -9,7 +9,7 @@ require (
 	github.com/btcsuite/btcwallet v0.10.0
 	github.com/btcsuite/btcwallet/walletdb v1.1.0
 	github.com/lightninglabs/neutrino v0.10.0
-	github.com/muun/libwallet v0.1.4
+	github.com/muun/libwallet v0.2.0
 )
 
 replace github.com/lightninglabs/neutrino => github.com/muun/neutrino v0.0.0-20190914162326-7082af0fa257

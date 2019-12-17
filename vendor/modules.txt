@@ -71,7 +71,7 @@ github.com/lightningnetwork/lnd/ticker
 # github.com/miekg/dns v0.0.0-20171125082028-79bfde677fa8
 github.com/miekg/dns
 github.com/miekg/dns/internal/socket
-# github.com/muun/libwallet v0.1.4
+# github.com/muun/libwallet v0.2.0
 github.com/muun/libwallet
 # github.com/pkg/errors v0.8.1
 github.com/pkg/errors
