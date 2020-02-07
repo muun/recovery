@@ -9,11 +9,19 @@ To do this you will need:
 * The two encrypted private keys that you exported from your muun wallet
 * A destination Bitcoin address where all your funds will be sent
 
+The process of scanning the blockchain to recover your funds can take several hours, please be ready to keep it running. The scan starts at the block your wallet was created to make it faster, but depending on when that was it can take long. 
+
 ## Setup
 
-1. Clone this repository
-2. Install [golang](https://golang.org/)
-3. Run the tool with the following line: `go run -mod=vendor .`
+1. Install [golang](https://golang.org/)
+2. Open a terminal window
+3. Run this code:
+
+```
+git clone https://github.com/muun/recovery
+cd recovery
+go run -mod=vendor 
+```
 
 ## Questions
 
