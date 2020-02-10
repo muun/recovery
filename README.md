@@ -20,7 +20,7 @@ The process of scanning the blockchain to recover your funds can take several ho
 ```
 git clone https://github.com/muun/recovery
 cd recovery
-go run -mod=vendor 
+go run -mod=vendor .
 ```
 
 ## Questions
