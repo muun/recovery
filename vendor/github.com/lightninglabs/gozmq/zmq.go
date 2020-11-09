@@ -197,7 +197,12 @@ func (c *Conn) subscribe(prefix string) error {
 }
 
 func (c *Conn) readCommand() (string, []byte, error) {
-	flag, buf, err := c.readFrame(true)
+	var (
+		flag byte
+		buf  []byte
+		err  error
+	)
+	flag, buf, err = c.readFrame(buf, true)
 	if err != nil {
 		return "", nil, err
 	}
@@ -261,11 +266,13 @@ func (c *Conn) readReady() error {
 
 // Read a frame from the socket, setting deadline before each read to prevent
 // timeouts during or between frames. The initialFrame should be used to denote
-// whether this is the first frame we'll read for a _new_ message.
+// whether this is the first frame we'll read for a _new_ message. The frame
+// will be read into the provided buffer, which should be large enough to fit
+// the frame. If nil, then an appropriately sized one will be allocated instead.
 //
 // NOTE: This is a blocking call if there is nothing to read from the
 // connection.
-func (c *Conn) readFrame(initialFrame bool) (byte, []byte, error) {
+func (c *Conn) readFrame(buf []byte, initialFrame bool) (byte, []byte, error) {
 	// We'll only set a read deadline if this is not the first frame of a
 	// message. We do this to ensure we receive complete messages in a
 	// timely manner.
@@ -287,43 +294,54 @@ func (c *Conn) readFrame(initialFrame bool) (byte, []byte, error) {
 
 	if flag&2 == 2 {
 		// Long form
-		var buf [8]byte
+		var sizeBuf [8]byte
 		c.conn.SetReadDeadline(time.Now().Add(c.timeout))
-		if _, err := io.ReadFull(c.conn, buf[:8]); err != nil {
+		if _, err := io.ReadFull(c.conn, sizeBuf[:8]); err != nil {
 			return 0, nil, err
 		}
-		for _, b := range buf {
+		for _, b := range sizeBuf {
 			size = (size << 8) | uint64(b)
 		}
 	} else {
 		// Short form
-		var buf [1]byte
+		var sizeBuf [1]byte
 		c.conn.SetReadDeadline(time.Now().Add(c.timeout))
-		if _, err := io.ReadFull(c.conn, buf[:1]); err != nil {
+		if _, err := io.ReadFull(c.conn, sizeBuf[:1]); err != nil {
 			return 0, nil, err
 		}
-		size = uint64(buf[0])
+		size = uint64(sizeBuf[0])
 	}
 
 	if size > MaxBodySize {
 		return 0, nil, errors.New("frame too large")
 	}
 
-	buf := make([]byte, size)
+	// Allocate a buffer large enough to fit the frame if one wasn't
+	// provided.
+	if buf == nil {
+		buf = make([]byte, size)
+	} else if uint64(len(buf)) < size {
+		return 0, nil, fmt.Errorf("buffer of size %v is too small for "+
+			"frame of size %v", len(buf), size)
+	}
+
 	// Prevent timeout during large data read in case of slow connection.
 	c.conn.SetReadDeadline(time.Time{})
-	if _, err := io.ReadFull(c.conn, buf); err != nil {
+	if _, err := io.ReadFull(c.conn, buf[:size]); err != nil {
 		return 0, nil, err
 	}
 
-	return flag, buf, nil
+	return flag, buf[:size], nil
 }
 
-// readMessage reads a new message from the connection.
+// readMessage reads a new message from the connection. Messages can be composed
+// of multiple sub-messages. They are read into the provided buffers. Each
+// buffer should be of sufficient length to successfully read messages. If none
+// are provided, then buffers will be allocated for each sub-message.
 //
 // NOTE: This is a blocking call if there is nothing to read from the
 // connection.
-func (c *Conn) readMessage() ([][]byte, error) {
+func (c *Conn) readMessage(bufs [][]byte) ([][]byte, error) {
 	// We'll only set read deadlines on the underlying connection when
 	// reading messages of multiple frames after the first frame has been
 	// read. This is done to ensure we receive all of the frames of a
@@ -332,9 +350,25 @@ func (c *Conn) readMessage() ([][]byte, error) {
 	// will be available for us to read.
 	initialFrame := true
 
-	var parts [][]byte
+	// If any buffers were provided, we'll use them to read the message
+	// into. If the message consumes more buffers than provided, we'll need
+	// to allocate some more.
+	bufIdx := 0
+	numInitialBufs := len(bufs)
+
 	for {
-		flag, buf, err := c.readFrame(initialFrame)
+		// If we have a buffer available, use it. Otherwise, buf will be
+		// nil and an appropriately sized buffer will be allocated
+		// instead.
+		var (
+			flag byte
+			buf  []byte
+			err  error
+		)
+		if bufIdx < numInitialBufs {
+			buf = bufs[bufIdx]
+		}
+		flag, buf, err = c.readFrame(buf, initialFrame)
 		if err != nil {
 			return nil, err
 		}
@@ -342,19 +376,26 @@ func (c *Conn) readMessage() ([][]byte, error) {
 			return nil, errors.New("expected message frame")
 		}
 
-		parts = append(parts, buf)
+		// Include the buffer back in the response.
+		if bufIdx < numInitialBufs {
+			bufs[bufIdx] = buf
+		} else {
+			bufs = append(bufs, buf)
+		}
 
 		if flag&1 == 0 {
 			break
 		}
 
-		if len(parts) > 16 {
+		if len(bufs) > 16 {
 			return nil, errors.New("message has too many parts")
 		}
 
 		initialFrame = false
+		bufIdx++
 	}
-	return parts, nil
+
+	return bufs, nil
 }
 
 // Subscribe connects to a publisher server and subscribes to the given topics.
@@ -404,15 +445,19 @@ func Subscribe(addr string, topics []string, timeout time.Duration) (*Conn, erro
 	return c, nil
 }
 
-// Receive a message from the publisher. It blocks until a new message is
-// received. If the connection times out and it was not explicitly terminated,
-// then a timeout error is returned. Otherwise, if it was explicitly terminated,
-// then io.EOF is returned.
-func (c *Conn) Receive() ([][]byte, error) {
-	messages, err := c.readMessage()
+// Receive a message from the publisher. Messages can be composed of multiple
+// sub-messages. They are read into the provided buffers. Each buffer should be
+// of sufficient length to successfully read messages. If none are provided,
+// then buffers will be allocated for each sub-message. It blocks until a new
+// message is received. If the connection times out and it was not explicitly
+// terminated, then a timeout error is returned. Otherwise, if it was explicitly
+// terminated, then io.EOF is returned.
+func (c *Conn) Receive(bufs [][]byte) ([][]byte, error) {
 	// If the error is either nil or a non-EOF error, we return it as-is.
+	var err error
+	bufs, err = c.readMessage(bufs)
 	if err != io.EOF {
-		return messages, err
+		return bufs, err
 	}
 
 	// We got an EOF, so our socket is disconnected. If the connection was

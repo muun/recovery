@@ -7,69 +7,19 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/muun/libwallet/addresses"
+
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 // These constants are here for clients usage.
 const (
-	AddressVersionSwapsV1 = 101
-	AddressVersionSwapsV2 = 102
+	AddressVersionSwapsV1 = addresses.SubmarineSwapV1
+	AddressVersionSwapsV2 = addresses.SubmarineSwapV2
 )
-
-type AddressVersion int
-
-const (
-	addressV1              AddressVersion = 1
-	addressV2              AddressVersion = 2
-	addressV3              AddressVersion = 3
-	addressV4              AddressVersion = 4
-	addressSubmarineSwapV1 AddressVersion = AddressVersionSwapsV1
-	addressSubmarineSwapV2 AddressVersion = AddressVersionSwapsV2
-)
-
-type muunAddress struct {
-	version        AddressVersion
-	derivationPath string
-	address        string
-}
-
-func newMuunAddress(version AddressVersion, userPublicKey, muunPublicKey *HDPublicKey) (MuunAddress, error) {
-	if userPublicKey.Path != muunPublicKey.Path {
-		return nil, errors.Errorf("paths must match for address generation (%v != %v)", userPublicKey.Path, muunPublicKey.Path)
-	}
-
-	switch version {
-	case addressV1:
-		return CreateAddressV1(userPublicKey)
-	case addressV2:
-		return CreateAddressV2(userPublicKey, muunPublicKey)
-	case addressV3:
-		return CreateAddressV3(userPublicKey, muunPublicKey)
-	case addressV4:
-		return CreateAddressV4(userPublicKey, muunPublicKey)
-	case addressSubmarineSwapV1:
-		return nil, errors.Errorf("can't manually create a submarine swap v1 address")
-	case addressSubmarineSwapV2:
-		return nil, errors.Errorf("can't manually create a submarine swap v2 address")
-	}
-
-	return nil, errors.Errorf("unknown version %v", version)
-}
-
-func (a *muunAddress) Version() int {
-	return int(a.version)
-}
-
-func (a *muunAddress) DerivationPath() string {
-	return a.derivationPath
-}
-
-func (a *muunAddress) Address() string {
-	return a.address
-}
 
 // MuunPaymentURI is muun's uri struct
 type MuunPaymentURI struct {
@@ -92,11 +42,9 @@ const (
 // GetPaymentURI builds a MuunPaymentURI from text (Bitcoin Uri, Muun Uri or address) and a network
 func GetPaymentURI(rawInput string, network *Network) (*MuunPaymentURI, error) {
 
-	bitcoinUri := buildUriFromString(rawInput)
-
-	components, err := url.Parse(bitcoinUri)
-	if err != nil {
-		return nil, err
+	bitcoinUri, components := buildUriFromString(rawInput, bitcoinScheme)
+	if components == nil {
+		return nil, errors.Errorf("failed to parse uri %v", rawInput)
 	}
 
 	if components.Scheme != "bitcoin" {
@@ -219,16 +167,16 @@ func DoPaymentRequestCall(url string, network *Network) (*MuunPaymentURI, error)
 
 	address, err := getAddressFromScript(payDetails.Outputs[0].Script, network)
 	if err != nil {
-		errors.Wrapf(err, "Failed to get address")
+		return nil, errors.Wrapf(err, "Failed to get address")
 	}
 
 	return &MuunPaymentURI{
 		Address:      address,
-		Message:      *payDetails.Memo,
-		Amount:       strconv.FormatUint(*payDetails.Outputs[0].Amount, 10),
+		Message:      payDetails.Memo,
+		Amount:       strconv.FormatUint(payDetails.Outputs[0].Amount, 10),
 		BIP70Url:     url,
-		CreationTime: strconv.FormatUint(*payDetails.Time, 10),
-		ExpiresTime:  strconv.FormatUint(*payDetails.Expires, 10),
+		CreationTime: strconv.FormatUint(payDetails.Time, 10),
+		ExpiresTime:  strconv.FormatUint(payDetails.Expires, 10),
 	}, nil
 }
 
@@ -244,14 +192,19 @@ func getAddressFromScript(script []byte, network *Network) (string, error) {
 	return address.String(), nil
 }
 
-func buildUriFromString(rawInput string) string {
+func buildUriFromString(rawInput string, targetScheme string) (string, *url.URL) {
 	newUri := rawInput
 
-	newUri = strings.Replace(newUri, muunScheme, bitcoinScheme, 1)
+	newUri = strings.Replace(newUri, muunScheme, targetScheme, 1)
 
-	if !strings.Contains(newUri, bitcoinScheme) {
-		newUri = bitcoinScheme + rawInput
+	if !strings.HasPrefix(strings.ToLower(newUri), targetScheme) {
+		newUri = targetScheme + rawInput
 	}
 
-	return newUri
+	components, err := url.Parse(newUri)
+	if err != nil {
+		return "", nil
+	}
+
+	return newUri, components
 }

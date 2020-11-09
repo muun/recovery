@@ -1,9 +1,10 @@
 package libwallet
 
 import (
-	"fmt"
+	"crypto/sha256"
 	"strings"
 
+	"github.com/muun/libwallet/hdpath"
 	"github.com/pkg/errors"
 
 	"github.com/btcsuite/btcutil/hdkeychain"
@@ -27,7 +28,7 @@ func NewHDPrivateKey(seed []byte, network *Network) (*HDPrivateKey, error) {
 	return &HDPrivateKey{key: *key, Network: network, Path: "m"}, nil
 }
 
-// NewHDPrivateKey builds an HD priv key from the compress priv and chain code for a given network
+// NewHDPrivateKeyFromBytes builds an HD priv key from the compress priv and chain code for a given network
 func NewHDPrivateKeyFromBytes(rawKey, chainCode []byte, network *Network) (*HDPrivateKey, error) {
 
 	parentFP := []byte{0, 0, 0, 0}
@@ -41,7 +42,7 @@ func NewHDPrivateKeyFromBytes(rawKey, chainCode []byte, network *Network) (*HDPr
 // If the parsed key is public, it returns an error
 func NewHDPrivateKeyFromString(str, path string, network *Network) (*HDPrivateKey, error) {
 
-	key, _, err := keyFromString(str)
+	key, err := hdkeychain.NewKeyFromString(str)
 	if err != nil {
 		return nil, err
 	}
@@ -72,21 +73,19 @@ func (p *HDPrivateKey) String() string {
 // DerivedAt derives a new child priv key, which may be hardened
 // index should be uint32 but for java compat we use int64
 func (p *HDPrivateKey) DerivedAt(index int64, hardened bool) (*HDPrivateKey, error) {
-
-	path := fmt.Sprintf("%v/%v", p.Path, index)
-
 	var modifier uint32
 	if hardened {
 		modifier = hdkeychain.HardenedKeyStart
-		path = path + hardenedSymbol
 	}
+
+	path := hdpath.MustParse(p.Path).Child(uint32(index) | modifier)
 
 	child, err := p.key.Child(uint32(index) | modifier)
 	if err != nil {
 		return nil, err
 	}
 
-	return &HDPrivateKey{key: *child, Network: p.Network, Path: path}, nil
+	return &HDPrivateKey{key: *child, Network: p.Network, Path: path.String()}, nil
 }
 
 func (p *HDPrivateKey) DeriveTo(path string) (*HDPrivateKey, error) {
@@ -95,20 +94,20 @@ func (p *HDPrivateKey) DeriveTo(path string) (*HDPrivateKey, error) {
 		return nil, errors.Errorf("derivation path %v is not prefix of the keys path %v", path, p.Path)
 	}
 
-	firstPath, err := parseDerivationPath(p.Path)
+	firstPath, err := hdpath.Parse(p.Path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't parse derivation path %v", p.Path)
 	}
 
-	secondPath, err := parseDerivationPath(path)
+	secondPath, err := hdpath.Parse(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't parse derivation path %v", path)
 	}
 
-	indexes := secondPath.indexes[len(firstPath.indexes):]
+	indexes := secondPath.IndexesFrom(firstPath)
 	derivedKey := p
 	for depth, index := range indexes {
-		derivedKey, err = derivedKey.DerivedAt(int64(index.i), index.hardened)
+		derivedKey, err = derivedKey.DerivedAt(int64(index.Index), index.Hardened)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to derive key at path %v on depth %v", path, depth)
 		}
@@ -127,10 +126,27 @@ func (p *HDPrivateKey) Sign(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	sig, err := signingKey.Sign(data)
+	hash := sha256.Sum256(data)
+	sig, err := signingKey.Sign(hash[:])
 	if err != nil {
 		return nil, err
 	}
 
 	return sig.Serialize(), nil
+}
+
+func (p *HDPrivateKey) Decrypter() Decrypter {
+	return &hdPrivKeyDecrypter{p, nil, true}
+}
+
+func (p *HDPrivateKey) DecrypterFrom(senderKey *PublicKey) Decrypter {
+	return &hdPrivKeyDecrypter{p, senderKey, false}
+}
+
+func (p *HDPrivateKey) Encrypter() Encrypter {
+	return &hdPubKeyEncrypter{p.PublicKey(), p}
+}
+
+func (p *HDPrivateKey) EncrypterTo(receiver *HDPublicKey) Encrypter {
+	return &hdPubKeyEncrypter{receiver, p}
 }

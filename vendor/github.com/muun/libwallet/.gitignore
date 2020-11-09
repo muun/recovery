@@ -1,17 +1,3 @@
-# Mac OS X finder
-.DS_Store
+libwallet/.gitignore# binary
+libwallet
 
-# Vim swap files
-*~
-.*.sw[a-z]
-
-# VS code
-.vscode
-
-# Goland
-.idea
-
-# Golang
-/bin
-/pkg
-/src

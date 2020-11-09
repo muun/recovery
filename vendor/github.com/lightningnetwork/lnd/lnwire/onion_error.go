@@ -11,6 +11,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-errors/errors"
+	"github.com/lightningnetwork/lnd/tlv"
 )
 
 // FailureMessage represents the onion failure object identified by its unique
@@ -78,6 +79,8 @@ const (
 	CodeFinalIncorrectCltvExpiry         FailCode = 18
 	CodeFinalIncorrectHtlcAmount         FailCode = 19
 	CodeExpiryTooFar                     FailCode = 21
+	CodeInvalidOnionPayload                       = FlagPerm | 22
+	CodeMPPTimeout                       FailCode = 23
 )
 
 // String returns the string representation of the failure code.
@@ -148,6 +151,12 @@ func (c FailCode) String() string {
 
 	case CodeExpiryTooFar:
 		return "ExpiryTooFar"
+
+	case CodeInvalidOnionPayload:
+		return "InvalidOnionPayload"
+
+	case CodeMPPTimeout:
+		return "MPPTimeout"
 
 	default:
 		return "<unknown>"
@@ -1117,6 +1126,86 @@ func (f *FailExpiryTooFar) Error() string {
 	return f.Code().String()
 }
 
+// InvalidOnionPayload is returned if the hop could not process the TLV payload
+// enclosed in the onion.
+type InvalidOnionPayload struct {
+	// Type is the TLV type that caused the specific failure.
+	Type uint64
+
+	// Offset is the byte offset within the payload where the failure
+	// occurred.
+	Offset uint16
+}
+
+// NewInvalidOnionPayload initializes a new InvalidOnionPayload failure.
+func NewInvalidOnionPayload(typ uint64, offset uint16) *InvalidOnionPayload {
+	return &InvalidOnionPayload{
+		Type:   typ,
+		Offset: offset,
+	}
+}
+
+// Code returns the failure unique code.
+//
+// NOTE: Part of the FailureMessage interface.
+func (f *InvalidOnionPayload) Code() FailCode {
+	return CodeInvalidOnionPayload
+}
+
+// Returns a human readable string describing the target FailureMessage.
+//
+// NOTE: Implements the error interface.
+func (f *InvalidOnionPayload) Error() string {
+	return fmt.Sprintf("%v(type=%v, offset=%d)",
+		f.Code(), f.Type, f.Offset)
+}
+
+// Decode decodes the failure from bytes stream.
+//
+// NOTE: Part of the Serializable interface.
+func (f *InvalidOnionPayload) Decode(r io.Reader, pver uint32) error {
+	var buf [8]byte
+	typ, err := tlv.ReadVarInt(r, &buf)
+	if err != nil {
+		return err
+	}
+	f.Type = typ
+
+	return ReadElements(r, &f.Offset)
+}
+
+// Encode writes the failure in bytes stream.
+//
+// NOTE: Part of the Serializable interface.
+func (f *InvalidOnionPayload) Encode(w io.Writer, pver uint32) error {
+	var buf [8]byte
+	if err := tlv.WriteVarInt(w, f.Type, &buf); err != nil {
+		return err
+	}
+
+	return WriteElements(w, f.Offset)
+}
+
+// FailMPPTimeout is returned if the complete amount for a multi part payment
+// was not received within a reasonable time.
+//
+// NOTE: May only be returned by the final node in the path.
+type FailMPPTimeout struct{}
+
+// Code returns the failure unique code.
+//
+// NOTE: Part of the FailureMessage interface.
+func (f *FailMPPTimeout) Code() FailCode {
+	return CodeMPPTimeout
+}
+
+// Returns a human readable string describing the target FailureMessage.
+//
+// NOTE: Implements the error interface.
+func (f *FailMPPTimeout) Error() string {
+	return f.Code().String()
+}
+
 // DecodeFailure decodes, validates, and parses the lnwire onion failure, for
 // the provided protocol version.
 func DecodeFailure(r io.Reader, pver uint32) (FailureMessage, error) {
@@ -1297,6 +1386,12 @@ func makeEmptyOnionError(code FailCode) (FailureMessage, error) {
 
 	case CodeExpiryTooFar:
 		return &FailExpiryTooFar{}, nil
+
+	case CodeInvalidOnionPayload:
+		return &InvalidOnionPayload{}, nil
+
+	case CodeMPPTimeout:
+		return &FailMPPTimeout{}, nil
 
 	default:
 		return nil, errors.Errorf("unknown error code: %v", code)

@@ -1,9 +1,9 @@
 package libwallet
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/muun/libwallet/hdpath"
 	"github.com/pkg/errors"
 
 	"github.com/btcsuite/btcutil/hdkeychain"
@@ -20,7 +20,7 @@ type HDPublicKey struct {
 // If the parsed key is private, it returns an error
 func NewHDPublicKeyFromString(str, path string, network *Network) (*HDPublicKey, error) {
 
-	key, _, err := keyFromString(str)
+	key, err := hdkeychain.NewKeyFromString(str)
 	if err != nil {
 		return nil, err
 	}
@@ -41,13 +41,17 @@ func (p *HDPublicKey) String() string {
 // index should be uint32 but for java compat we use int64
 func (p *HDPublicKey) DerivedAt(index int64) (*HDPublicKey, error) {
 
+	if index&hdkeychain.HardenedKeyStart != 0 {
+		return nil, errors.Errorf("can't derive a hardened pub key (index %v)", index)
+	}
+
 	child, err := p.key.Child(uint32(index))
 	if err != nil {
 		return nil, err
 	}
 
-	path := fmt.Sprintf("%v/%v", p.Path, index)
-	return &HDPublicKey{key: *child, Network: p.Network, Path: path}, nil
+	path := hdpath.MustParse(p.Path).Child(uint32(index))
+	return &HDPublicKey{key: *child, Network: p.Network, Path: path.String()}, nil
 }
 
 func (p *HDPublicKey) DeriveTo(path string) (*HDPublicKey, error) {
@@ -56,24 +60,24 @@ func (p *HDPublicKey) DeriveTo(path string) (*HDPublicKey, error) {
 		return nil, errors.Errorf("derivation path %v is not prefix of the keys path %v", path, p.Path)
 	}
 
-	firstPath, err := parseDerivationPath(p.Path)
+	firstPath, err := hdpath.Parse(p.Path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't parse derivation path %v", p.Path)
 	}
 
-	secondPath, err := parseDerivationPath(path)
+	secondPath, err := hdpath.Parse(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't parse derivation path %v", path)
 	}
 
-	indexes := secondPath.indexes[len(firstPath.indexes):]
+	indexes := secondPath.IndexesFrom(firstPath)
 	derivedKey := p
 	for depth, index := range indexes {
-		if index.hardened {
+		if index.Hardened {
 			return nil, errors.Errorf("can't derive a hardened pub key (path %v)", path)
 		}
 
-		derivedKey, err = derivedKey.DerivedAt(int64(index.i))
+		derivedKey, err = derivedKey.DerivedAt(int64(index.Index))
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to derive key at path %v on depth %v", path, depth)
 		}

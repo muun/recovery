@@ -2,8 +2,6 @@ package libwallet
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -32,6 +30,7 @@ func NewChallengePrivateKey(input, salt []byte) *ChallengePrivateKey {
 	return &ChallengePrivateKey{key: priv}
 }
 
+// SignSha computes the SHA-256 digest of the given payload and signs it.
 func (k *ChallengePrivateKey) SignSha(payload []byte) ([]byte, error) {
 
 	hash := sha256.Sum256(payload)
@@ -65,7 +64,7 @@ func (k *ChallengePrivateKey) DecryptKey(encryptedKey string, network *Network) 
 	}
 
 	birthdayBytes := make([]byte, 2)
-	rawPubEph := make([]byte, 33)
+	rawPubEph := make([]byte, serializedPublicKeyLength)
 	ciphertext := make([]byte, 64)
 	recoveryCodeSalt := make([]byte, 8)
 
@@ -76,7 +75,7 @@ func (k *ChallengePrivateKey) DecryptKey(encryptedKey string, network *Network) 
 	birthday := binary.BigEndian.Uint16(birthdayBytes)
 
 	n, err = reader.Read(rawPubEph)
-	if err != nil || n != 33 {
+	if err != nil || n != serializedPublicKeyLength {
 		return nil, errors.Errorf("decrypting key: failed to read pubeph")
 	}
 
@@ -90,24 +89,10 @@ func (k *ChallengePrivateKey) DecryptKey(encryptedKey string, network *Network) 
 		return nil, errors.Errorf("decrypting key: failed to read recoveryCodeSalt")
 	}
 
-	pubEph, err := btcec.ParsePubKey(rawPubEph, btcec.S256())
+	plaintext, err := decryptWithPrivKey(k.key, rawPubEph, ciphertext)
 	if err != nil {
-		return nil, errors.Wrapf(err, "decrypting key: failed to parse pub eph")
+		return nil, err
 	}
-
-	sharedSecret, _ := pubEph.ScalarMult(pubEph.X, pubEph.Y, k.key.D.Bytes())
-
-	iv := rawPubEph[len(rawPubEph)-aes.BlockSize:]
-
-	block, err := aes.NewCipher(paddedSerializeBigInt(32, sharedSecret))
-	if err != nil {
-		return nil, errors.Wrapf(err, "challenge_key: failed to generate encryption key")
-	}
-
-	plaintext := make([]byte, len(ciphertext))
-
-	mode := cipher.NewCBCDecrypter(block, iv)
-	mode.CryptBlocks(plaintext, ciphertext)
 
 	rawPrivKey := plaintext[0:32]
 	rawChainCode := plaintext[32:]

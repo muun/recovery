@@ -8,24 +8,24 @@ import (
 )
 
 func buildExtendedKey(rawKey, recoveryCode string) *libwallet.DecryptedPrivateKey {
-	recoveryCodeBytes := extractBytes(recoveryCode)
 	salt := extractSalt(rawKey)
 
-	privKey := libwallet.NewChallengePrivateKey(recoveryCodeBytes, salt)
+	decryptionKey, err := libwallet.RecoveryCodeToKey(recoveryCode, salt)
+	if err != nil {
+		log.Fatalf("failed to process recovery code: %v", err)
+	}
 
-	key, err := privKey.DecryptKey(rawKey, libwallet.Mainnet())
+	walletKey, err := decryptionKey.DecryptKey(rawKey, libwallet.Mainnet())
 	if err != nil {
 		log.Fatalf("failed to decrypt key: %v", err)
 	}
 
-	return key
+	return walletKey
 }
 
-func extractSalt(rawKey string) []byte {
+func extractSalt(rawKey string) string {
 	bytes := base58.Decode(rawKey)
-	return bytes[len(bytes)-8:]
-}
+	saltBytes := bytes[len(bytes)-8:]
 
-func extractBytes(recoveryCode string) []byte {
-	return []byte(recoveryCode)
+	return string(saltBytes)
 }

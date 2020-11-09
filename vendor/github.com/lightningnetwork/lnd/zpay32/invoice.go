@@ -73,19 +73,33 @@ const (
 	// supported or required by the receiver.
 	fieldType9 = 5
 
+	// fieldTypeS contains a 32-byte payment address, which is a nonce
+	// included in the final hop's payload to prevent intermediaries from
+	// probing the recipient.
+	fieldTypeS = 16
+
 	// maxInvoiceLength is the maximum total length an invoice can have.
 	// This is chosen to be the maximum number of bytes that can fit into a
 	// single QR code: https://en.wikipedia.org/wiki/QR_code#Storage
 	maxInvoiceLength = 7089
+
+	// DefaultInvoiceExpiry is the default expiry duration from the creation
+	// timestamp if expiry is set to zero.
+	DefaultInvoiceExpiry = time.Hour
 )
 
 var (
-	// InvoiceFeatures holds the set of all known feature bits that are
-	// exposed as BOLT 11 features.
-	InvoiceFeatures = map[lnwire.FeatureBit]string{}
-
-	// ErrInvoiceTooLarge is returned when an invoice exceeds maxInvoiceLength.
+	// ErrInvoiceTooLarge is returned when an invoice exceeds
+	// maxInvoiceLength.
 	ErrInvoiceTooLarge = errors.New("invoice is too large")
+
+	// ErrInvalidFieldLength is returned when a tagged field was specified
+	// with a length larger than the left over bytes of the data field.
+	ErrInvalidFieldLength = errors.New("invalid field length")
+
+	// ErrBrokenTaggedField is returned when the last tagged field is
+	// incorrectly formatted and doesn't have enough bytes to be read.
+	ErrBrokenTaggedField = errors.New("last tagged field is broken")
 )
 
 // MessageSigner is passed to the Encode method to provide a signature
@@ -118,6 +132,10 @@ type Invoice struct {
 	// invoice.
 	PaymentHash *[32]byte
 
+	// PaymentAddr is the payment address to be used by payments to prevent
+	// probing of the destination.
+	PaymentAddr *[32]byte
+
 	// Destination is the public key of the target node. This will always
 	// be set after decoding, and can optionally be set before encoding to
 	// include the pubkey as an 'n' field. If this is not set before
@@ -126,7 +144,8 @@ type Invoice struct {
 	Destination *btcec.PublicKey
 
 	// minFinalCLTVExpiry is the value that the creator of the invoice
-	// expects to be used for the
+	// expects to be used for the CLTV expiry of the HTLC extended to it in
+	// the last hop.
 	//
 	// NOTE: This value is optional, and should be set to nil if the
 	// invoice creator doesn't have a strong requirement on the CLTV expiry
@@ -242,6 +261,23 @@ func RouteHint(routeHint []HopHint) func(*Invoice) {
 	}
 }
 
+// Features is a functional option that allows callers of NewInvoice to set the
+// desired feature bits that are advertised on the invoice. If this option is
+// not used, an empty feature vector will automatically be populated.
+func Features(features *lnwire.FeatureVector) func(*Invoice) {
+	return func(i *Invoice) {
+		i.Features = features
+	}
+}
+
+// PaymentAddr is a functional option that allows callers of NewInvoice to set
+// the desired payment address tht is advertised on the invoice.
+func PaymentAddr(addr [32]byte) func(*Invoice) {
+	return func(i *Invoice) {
+		i.PaymentAddr = &addr
+	}
+}
+
 // NewInvoice creates a new Invoice object. The last parameter is a set of
 // variadic arguments for setting optional fields of the invoice.
 //
@@ -258,6 +294,13 @@ func NewInvoice(net *chaincfg.Params, paymentHash [32]byte,
 
 	for _, option := range options {
 		option(invoice)
+	}
+
+	// If no features were set, we'll populate an empty feature vector.
+	if invoice.Features == nil {
+		invoice.Features = lnwire.NewFeatureVector(
+			nil, lnwire.Features,
+		)
 	}
 
 	if err := validateInvoice(invoice); err != nil {
@@ -366,6 +409,13 @@ func Decode(invoice string, net *chaincfg.Params) (*Invoice, error) {
 			return nil, err
 		}
 		decodedInvoice.Destination = pubkey
+	}
+
+	// If no feature vector was decoded, populate an empty one.
+	if decodedInvoice.Features == nil {
+		decodedInvoice.Features = lnwire.NewFeatureVector(
+			nil, lnwire.Features,
+		)
 	}
 
 	// Now that we have created the invoice, make sure it has the required
@@ -499,7 +549,7 @@ func (invoice *Invoice) Expiry() time.Duration {
 	}
 
 	// If no expiry is set for this invoice, default is 3600 seconds.
-	return 3600 * time.Second
+	return DefaultInvoiceExpiry
 }
 
 // MinFinalCLTVExpiry returns the minimum final CLTV expiry delta as specified
@@ -556,6 +606,11 @@ func validateInvoice(invoice *Invoice) error {
 			len(invoice.Destination.SerializeCompressed()))
 	}
 
+	// Ensure that all invoices have feature vectors.
+	if invoice.Features == nil {
+		return fmt.Errorf("missing feature vector")
+	}
+
 	return nil
 }
 
@@ -592,12 +647,14 @@ func parseTimestamp(data []byte) (uint64, error) {
 // fills the Invoice struct accordingly.
 func parseTaggedFields(invoice *Invoice, fields []byte, net *chaincfg.Params) error {
 	index := 0
-	for {
+	for len(fields)-index > 0 {
 		// If there are less than 3 groups to read, there cannot be more
 		// interesting information, as we need the type (1 group) and
 		// length (2 groups).
+		//
+		// This means the last tagged field is broken.
 		if len(fields)-index < 3 {
-			break
+			return ErrBrokenTaggedField
 		}
 
 		typ := fields[index]
@@ -609,7 +666,7 @@ func parseTaggedFields(invoice *Invoice, fields []byte, net *chaincfg.Params) er
 		// If we don't have enough field data left to read this length,
 		// return error.
 		if len(fields) < index+3+int(dataLength) {
-			return fmt.Errorf("invalid field length")
+			return ErrInvalidFieldLength
 		}
 		base32Data := fields[index+3 : index+3+int(dataLength)]
 
@@ -624,7 +681,15 @@ func parseTaggedFields(invoice *Invoice, fields []byte, net *chaincfg.Params) er
 				continue
 			}
 
-			invoice.PaymentHash, err = parsePaymentHash(base32Data)
+			invoice.PaymentHash, err = parse32Bytes(base32Data)
+		case fieldTypeS:
+			if invoice.PaymentAddr != nil {
+				// We skip the field if we have already seen a
+				// supported one.
+				continue
+			}
+
+			invoice.PaymentAddr, err = parse32Bytes(base32Data)
 		case fieldTypeD:
 			if invoice.Description != nil {
 				// We skip the field if we have already seen a
@@ -648,7 +713,7 @@ func parseTaggedFields(invoice *Invoice, fields []byte, net *chaincfg.Params) er
 				continue
 			}
 
-			invoice.DescriptionHash, err = parseDescriptionHash(base32Data)
+			invoice.DescriptionHash, err = parse32Bytes(base32Data)
 		case fieldTypeX:
 			if invoice.expiry != nil {
 				// We skip the field if we have already seen a
@@ -715,12 +780,12 @@ func parseFieldDataLength(data []byte) (uint16, error) {
 	return uint16(data[0])<<5 | uint16(data[1]), nil
 }
 
-// parsePaymentHash converts a 256-bit payment hash (encoded in base32)
-// to *[32]byte.
-func parsePaymentHash(data []byte) (*[32]byte, error) {
+// parse32Bytes converts a 256-bit value (encoded in base32) to *[32]byte. This
+// can be used for payment hashes, description hashes, payment addresses, etc.
+func parse32Bytes(data []byte) (*[32]byte, error) {
 	var paymentHash [32]byte
 
-	// As BOLT-11 states, a reader must skip over the payment hash field if
+	// As BOLT-11 states, a reader must skip over the 32-byte fields if
 	// it does not have a length of 52, so avoid returning an error.
 	if len(data) != hashBase32Len {
 		return nil, nil
@@ -764,27 +829,6 @@ func parseDestination(data []byte) (*btcec.PublicKey, error) {
 	}
 
 	return btcec.ParsePubKey(base256Data, btcec.S256())
-}
-
-// parseDescriptionHash converts a 256-bit description hash (encoded in base32)
-// to *[32]byte.
-func parseDescriptionHash(data []byte) (*[32]byte, error) {
-	var descriptionHash [32]byte
-
-	// As BOLT-11 states, a reader must skip over the description hash field
-	// if it does not have a length of 52, so avoid returning an error.
-	if len(data) != hashBase32Len {
-		return nil, nil
-	}
-
-	hash, err := bech32.ConvertBits(data, 5, 8, false)
-	if err != nil {
-		return nil, err
-	}
-
-	copy(descriptionHash[:], hash[:])
-
-	return &descriptionHash, nil
 }
 
 // parseExpiry converts the data (encoded in base32) into the expiry time.
@@ -912,32 +956,14 @@ func parseFeatures(data []byte) (*lnwire.FeatureVector, error) {
 		return nil, err
 	}
 
-	fv := lnwire.NewFeatureVector(rawFeatures, InvoiceFeatures)
-	unknownFeatures := fv.UnknownRequiredFeatures()
-	if len(unknownFeatures) > 0 {
-		return nil, fmt.Errorf("invoice contains unknown required "+
-			"features: %v", unknownFeatures)
-	}
-
-	return fv, nil
+	return lnwire.NewFeatureVector(rawFeatures, lnwire.Features), nil
 }
 
 // writeTaggedFields writes the non-nil tagged fields of the Invoice to the
 // base32 buffer.
 func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 	if invoice.PaymentHash != nil {
-		// Convert 32 byte hash to 52 5-bit groups.
-		base32, err := bech32.ConvertBits(invoice.PaymentHash[:], 8, 5,
-			true)
-		if err != nil {
-			return err
-		}
-		if len(base32) != hashBase32Len {
-			return fmt.Errorf("invalid payment hash length: %d",
-				len(invoice.PaymentHash))
-		}
-
-		err = writeTaggedField(bufferBase32, fieldTypeP, base32)
+		err := writeBytes32(bufferBase32, fieldTypeP, *invoice.PaymentHash)
 		if err != nil {
 			return err
 		}
@@ -956,19 +982,9 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 	}
 
 	if invoice.DescriptionHash != nil {
-		// Convert 32 byte hash to 52 5-bit groups.
-		descBase32, err := bech32.ConvertBits(
-			invoice.DescriptionHash[:], 8, 5, true)
-		if err != nil {
-			return err
-		}
-
-		if len(descBase32) != hashBase32Len {
-			return fmt.Errorf("invalid description hash length: %d",
-				len(invoice.DescriptionHash))
-		}
-
-		err = writeTaggedField(bufferBase32, fieldTypeH, descBase32)
+		err := writeBytes32(
+			bufferBase32, fieldTypeH, *invoice.DescriptionHash,
+		)
 		if err != nil {
 			return err
 		}
@@ -1072,7 +1088,15 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 			return err
 		}
 	}
-	if invoice.Features != nil && invoice.Features.SerializeSize32() > 0 {
+	if invoice.PaymentAddr != nil {
+		err := writeBytes32(
+			bufferBase32, fieldTypeS, *invoice.PaymentAddr,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	if invoice.Features.SerializeSize32() > 0 {
 		var b bytes.Buffer
 		err := invoice.Features.RawFeatureVector.EncodeBase32(&b)
 		if err != nil {
@@ -1086,6 +1110,18 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 	}
 
 	return nil
+}
+
+// writeBytes32 encodes a 32-byte array as base32 and writes it to bufferBase32
+// under the passed fieldType.
+func writeBytes32(bufferBase32 *bytes.Buffer, fieldType byte, b [32]byte) error {
+	// Convert 32 byte hash to 52 5-bit groups.
+	base32, err := bech32.ConvertBits(b[:], 8, 5, true)
+	if err != nil {
+		return err
+	}
+
+	return writeTaggedField(bufferBase32, fieldType, base32)
 }
 
 // writeTaggedField takes the type of a tagged data field, and the data of

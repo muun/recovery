@@ -20,7 +20,8 @@ import (
 // *****************************
 
 // FutureGetTransactionResult is a future promise to deliver the result
-// of a GetTransactionAsync RPC invocation (or an applicable error).
+// of a GetTransactionAsync or GetTransactionWatchOnlyAsync RPC invocation
+// (or an applicable error).
 type FutureGetTransactionResult chan *response
 
 // Receive waits for the response promised by the future and returns detailed
@@ -61,6 +62,28 @@ func (c *Client) GetTransactionAsync(txHash *chainhash.Hash) FutureGetTransactio
 // See GetRawTransaction to return the raw transaction instead.
 func (c *Client) GetTransaction(txHash *chainhash.Hash) (*btcjson.GetTransactionResult, error) {
 	return c.GetTransactionAsync(txHash).Receive()
+}
+
+// GetTransactionWatchOnlyAsync returns an instance of a type that can be used
+// to get the result of the RPC at some future time by invoking the Receive function on
+// the returned instance.
+//
+// See GetTransactionWatchOnly for the blocking version and more details.
+func (c *Client) GetTransactionWatchOnlyAsync(txHash *chainhash.Hash, watchOnly bool) FutureGetTransactionResult {
+	hash := ""
+	if txHash != nil {
+		hash = txHash.String()
+	}
+
+	cmd := btcjson.NewGetTransactionCmd(hash, &watchOnly)
+	return c.sendCmd(cmd)
+}
+
+// GetTransactionWatchOnly returns detailed information about a wallet
+// transaction, and allow including watch-only addresses in balance
+// calculation and details.
+func (c *Client) GetTransactionWatchOnly(txHash *chainhash.Hash, watchOnly bool) (*btcjson.GetTransactionResult, error) {
+	return c.GetTransactionWatchOnlyAsync(txHash, watchOnly).Receive()
 }
 
 // FutureListTransactionsResult is a future promise to deliver the result of a
@@ -753,13 +776,16 @@ func (c *Client) SendManyComment(fromAccount string,
 
 // FutureAddMultisigAddressResult is a future promise to deliver the result of a
 // AddMultisigAddressAsync RPC invocation (or an applicable error).
-type FutureAddMultisigAddressResult chan *response
+type FutureAddMultisigAddressResult struct {
+	responseChannel chan *response
+	network         *chaincfg.Params
+}
 
 // Receive waits for the response promised by the future and returns the
 // multisignature address that requires the specified number of signatures for
 // the provided addresses.
 func (r FutureAddMultisigAddressResult) Receive() (btcutil.Address, error) {
-	res, err := receiveFuture(r)
+	res, err := receiveFuture(r.responseChannel)
 	if err != nil {
 		return nil, err
 	}
@@ -771,7 +797,7 @@ func (r FutureAddMultisigAddressResult) Receive() (btcutil.Address, error) {
 		return nil, err
 	}
 
-	return btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
+	return btcutil.DecodeAddress(addr, r.network)
 }
 
 // AddMultisigAddressAsync returns an instance of a type that can be used to get
@@ -786,14 +812,17 @@ func (c *Client) AddMultisigAddressAsync(requiredSigs int, addresses []btcutil.A
 	}
 
 	cmd := btcjson.NewAddMultisigAddressCmd(requiredSigs, addrs, &account)
-	return c.sendCmd(cmd)
+	result := FutureAddMultisigAddressResult{
+		network:         c.chainParams,
+		responseChannel: c.sendCmd(cmd),
+	}
+	return result
 }
 
 // AddMultisigAddress adds a multisignature address that requires the specified
 // number of signatures for the provided addresses to the wallet.
 func (c *Client) AddMultisigAddress(requiredSigs int, addresses []btcutil.Address, account string) (btcutil.Address, error) {
-	return c.AddMultisigAddressAsync(requiredSigs, addresses,
-		account).Receive()
+	return c.AddMultisigAddressAsync(requiredSigs, addresses, account).Receive()
 }
 
 // FutureCreateMultisigResult is a future promise to deliver the result of a
@@ -868,12 +897,15 @@ func (c *Client) CreateNewAccount(account string) error {
 
 // FutureGetNewAddressResult is a future promise to deliver the result of a
 // GetNewAddressAsync RPC invocation (or an applicable error).
-type FutureGetNewAddressResult chan *response
+type FutureGetNewAddressResult struct {
+	responseChannel chan *response
+	network         *chaincfg.Params
+}
 
 // Receive waits for the response promised by the future and returns a new
 // address.
 func (r FutureGetNewAddressResult) Receive() (btcutil.Address, error) {
-	res, err := receiveFuture(r)
+	res, err := receiveFuture(r.responseChannel)
 	if err != nil {
 		return nil, err
 	}
@@ -885,7 +917,7 @@ func (r FutureGetNewAddressResult) Receive() (btcutil.Address, error) {
 		return nil, err
 	}
 
-	return btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
+	return btcutil.DecodeAddress(addr, r.network)
 }
 
 // GetNewAddressAsync returns an instance of a type that can be used to get the
@@ -895,23 +927,31 @@ func (r FutureGetNewAddressResult) Receive() (btcutil.Address, error) {
 // See GetNewAddress for the blocking version and more details.
 func (c *Client) GetNewAddressAsync(account string) FutureGetNewAddressResult {
 	cmd := btcjson.NewGetNewAddressCmd(&account)
-	return c.sendCmd(cmd)
+	result := FutureGetNewAddressResult{
+		network:         c.chainParams,
+		responseChannel: c.sendCmd(cmd),
+	}
+	return result
 }
 
-// GetNewAddress returns a new address.
+// GetNewAddress returns a new address, and decodes based on the client's
+// chain params.
 func (c *Client) GetNewAddress(account string) (btcutil.Address, error) {
 	return c.GetNewAddressAsync(account).Receive()
 }
 
 // FutureGetRawChangeAddressResult is a future promise to deliver the result of
 // a GetRawChangeAddressAsync RPC invocation (or an applicable error).
-type FutureGetRawChangeAddressResult chan *response
+type FutureGetRawChangeAddressResult struct {
+	responseChannel chan *response
+	network         *chaincfg.Params
+}
 
 // Receive waits for the response promised by the future and returns a new
 // address for receiving change that will be associated with the provided
 // account.  Note that this is only for raw transactions and NOT for normal use.
 func (r FutureGetRawChangeAddressResult) Receive() (btcutil.Address, error) {
-	res, err := receiveFuture(r)
+	res, err := receiveFuture(r.responseChannel)
 	if err != nil {
 		return nil, err
 	}
@@ -923,7 +963,7 @@ func (r FutureGetRawChangeAddressResult) Receive() (btcutil.Address, error) {
 		return nil, err
 	}
 
-	return btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
+	return btcutil.DecodeAddress(addr, r.network)
 }
 
 // GetRawChangeAddressAsync returns an instance of a type that can be used to
@@ -933,7 +973,11 @@ func (r FutureGetRawChangeAddressResult) Receive() (btcutil.Address, error) {
 // See GetRawChangeAddress for the blocking version and more details.
 func (c *Client) GetRawChangeAddressAsync(account string) FutureGetRawChangeAddressResult {
 	cmd := btcjson.NewGetRawChangeAddressCmd(&account)
-	return c.sendCmd(cmd)
+	result := FutureGetRawChangeAddressResult{
+		network:         c.chainParams,
+		responseChannel: c.sendCmd(cmd),
+	}
+	return result
 }
 
 // GetRawChangeAddress returns a new address for receiving change that will be
@@ -945,12 +989,15 @@ func (c *Client) GetRawChangeAddress(account string) (btcutil.Address, error) {
 
 // FutureAddWitnessAddressResult is a future promise to deliver the result of
 // a AddWitnessAddressAsync RPC invocation (or an applicable error).
-type FutureAddWitnessAddressResult chan *response
+type FutureAddWitnessAddressResult struct {
+	responseChannel chan *response
+	network         *chaincfg.Params
+}
 
 // Receive waits for the response promised by the future and returns the new
 // address.
 func (r FutureAddWitnessAddressResult) Receive() (btcutil.Address, error) {
-	res, err := receiveFuture(r)
+	res, err := receiveFuture(r.responseChannel)
 	if err != nil {
 		return nil, err
 	}
@@ -962,7 +1009,7 @@ func (r FutureAddWitnessAddressResult) Receive() (btcutil.Address, error) {
 		return nil, err
 	}
 
-	return btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
+	return btcutil.DecodeAddress(addr, r.network)
 }
 
 // AddWitnessAddressAsync returns an instance of a type that can be used to get
@@ -972,7 +1019,11 @@ func (r FutureAddWitnessAddressResult) Receive() (btcutil.Address, error) {
 // See AddWitnessAddress for the blocking version and more details.
 func (c *Client) AddWitnessAddressAsync(address string) FutureAddWitnessAddressResult {
 	cmd := btcjson.NewAddWitnessAddressCmd(address)
-	return c.sendCmd(cmd)
+	response := FutureAddWitnessAddressResult{
+		network:         c.chainParams,
+		responseChannel: c.sendCmd(cmd),
+	}
+	return response
 }
 
 // AddWitnessAddress adds a witness address for a script and returns the new
@@ -983,12 +1034,15 @@ func (c *Client) AddWitnessAddress(address string) (btcutil.Address, error) {
 
 // FutureGetAccountAddressResult is a future promise to deliver the result of a
 // GetAccountAddressAsync RPC invocation (or an applicable error).
-type FutureGetAccountAddressResult chan *response
+type FutureGetAccountAddressResult struct {
+	responseChannel chan *response
+	network         *chaincfg.Params
+}
 
 // Receive waits for the response promised by the future and returns the current
 // Bitcoin address for receiving payments to the specified account.
 func (r FutureGetAccountAddressResult) Receive() (btcutil.Address, error) {
-	res, err := receiveFuture(r)
+	res, err := receiveFuture(r.responseChannel)
 	if err != nil {
 		return nil, err
 	}
@@ -1000,7 +1054,7 @@ func (r FutureGetAccountAddressResult) Receive() (btcutil.Address, error) {
 		return nil, err
 	}
 
-	return btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
+	return btcutil.DecodeAddress(addr, r.network)
 }
 
 // GetAccountAddressAsync returns an instance of a type that can be used to get
@@ -1010,7 +1064,11 @@ func (r FutureGetAccountAddressResult) Receive() (btcutil.Address, error) {
 // See GetAccountAddress for the blocking version and more details.
 func (c *Client) GetAccountAddressAsync(account string) FutureGetAccountAddressResult {
 	cmd := btcjson.NewGetAccountAddressCmd(account)
-	return c.sendCmd(cmd)
+	result := FutureGetAccountAddressResult{
+		network:         c.chainParams,
+		responseChannel: c.sendCmd(cmd),
+	}
+	return result
 }
 
 // GetAccountAddress returns the current Bitcoin address for receiving payments
@@ -1086,12 +1144,15 @@ func (c *Client) SetAccount(address btcutil.Address, account string) error {
 
 // FutureGetAddressesByAccountResult is a future promise to deliver the result
 // of a GetAddressesByAccountAsync RPC invocation (or an applicable error).
-type FutureGetAddressesByAccountResult chan *response
+type FutureGetAddressesByAccountResult struct {
+	responseChannel chan *response
+	network         *chaincfg.Params
+}
 
 // Receive waits for the response promised by the future and returns the list of
 // addresses associated with the passed account.
 func (r FutureGetAddressesByAccountResult) Receive() ([]btcutil.Address, error) {
-	res, err := receiveFuture(r)
+	res, err := receiveFuture(r.responseChannel)
 	if err != nil {
 		return nil, err
 	}
@@ -1103,17 +1164,15 @@ func (r FutureGetAddressesByAccountResult) Receive() ([]btcutil.Address, error) 
 		return nil, err
 	}
 
-	addrs := make([]btcutil.Address, 0, len(addrStrings))
-	for _, addrStr := range addrStrings {
-		addr, err := btcutil.DecodeAddress(addrStr,
-			&chaincfg.MainNetParams)
+	addresses := make([]btcutil.Address, len(addrStrings))
+	for i, addrString := range addrStrings {
+		addresses[i], err = btcutil.DecodeAddress(addrString, r.network)
 		if err != nil {
 			return nil, err
 		}
-		addrs = append(addrs, addr)
 	}
 
-	return addrs, nil
+	return addresses, nil
 }
 
 // GetAddressesByAccountAsync returns an instance of a type that can be used to
@@ -1123,7 +1182,11 @@ func (r FutureGetAddressesByAccountResult) Receive() ([]btcutil.Address, error) 
 // See GetAddressesByAccount for the blocking version and more details.
 func (c *Client) GetAddressesByAccountAsync(account string) FutureGetAddressesByAccountResult {
 	cmd := btcjson.NewGetAddressesByAccountCmd(account)
-	return c.sendCmd(cmd)
+	result := FutureGetAddressesByAccountResult{
+		network:         c.chainParams,
+		responseChannel: c.sendCmd(cmd),
+	}
+	return result
 }
 
 // GetAddressesByAccount returns the list of addresses associated with the
@@ -1505,6 +1568,43 @@ func (c *Client) GetBalanceMinConf(account string, minConfirms int) (btcutil.Amo
 		return FutureGetBalanceParseResult(response).Receive()
 	}
 	return c.GetBalanceMinConfAsync(account, minConfirms).Receive()
+}
+
+// FutureGetBalancesResult is a future promise to deliver the result of a
+// GetBalancesAsync RPC invocation (or an applicable error).
+type FutureGetBalancesResult chan *response
+
+// Receive waits for the response promised by the future and returns the
+// available balances from the server.
+func (r FutureGetBalancesResult) Receive() (*btcjson.GetBalancesResult, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal result as a floating point number.
+	var balances btcjson.GetBalancesResult
+	err = json.Unmarshal(res, &balances)
+	if err != nil {
+		return nil, err
+	}
+
+	return &balances, nil
+}
+
+// GetBalancesAsync returns an instance of a type that can be used to get the
+// result of the RPC at some future time by invoking the Receive function on the
+// returned instance.
+//
+// See GetBalances for the blocking version and more details.
+func (c *Client) GetBalancesAsync() FutureGetBalancesResult {
+	cmd := btcjson.NewGetBalancesCmd()
+	return c.sendCmd(cmd)
+}
+
+// GetBalances returns the available balances from the server.
+func (c *Client) GetBalances() (*btcjson.GetBalancesResult, error) {
+	return c.GetBalancesAsync().Receive()
 }
 
 // FutureGetReceivedByAccountResult is a future promise to deliver the result of
