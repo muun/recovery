@@ -62,6 +62,10 @@ github.com/decred/dcrd/lru
 github.com/go-errors/errors
 # github.com/golang/protobuf v1.4.2
 github.com/golang/protobuf/proto
+# github.com/hhrutter/lzw v0.0.0-20190829144645-6f07a24e8650
+github.com/hhrutter/lzw
+# github.com/hhrutter/tiff v0.0.0-20190829141212-736cae8d0bc7
+github.com/hhrutter/tiff
 # github.com/jinzhu/gorm v1.9.16
 github.com/jinzhu/gorm
 github.com/jinzhu/gorm/dialects/sqlite
@@ -124,11 +128,12 @@ github.com/ltcsuite/ltcd/wire
 github.com/mattn/go-sqlite3
 # github.com/miekg/dns v1.1.29
 github.com/miekg/dns
-# github.com/muun/libwallet v0.5.0
+# github.com/muun/libwallet v0.7.0
 github.com/muun/libwallet
 github.com/muun/libwallet/addresses
 github.com/muun/libwallet/aescbc
 github.com/muun/libwallet/emergencykit
+github.com/muun/libwallet/errors
 github.com/muun/libwallet/fees
 github.com/muun/libwallet/hdpath
 github.com/muun/libwallet/keycrypt
@@ -136,6 +141,16 @@ github.com/muun/libwallet/recoverycode
 github.com/muun/libwallet/sphinx
 github.com/muun/libwallet/swaps
 github.com/muun/libwallet/walletdb
+# github.com/pdfcpu/pdfcpu v0.3.8
+github.com/pdfcpu/pdfcpu/internal/config
+github.com/pdfcpu/pdfcpu/internal/corefont/metrics
+github.com/pdfcpu/pdfcpu/pkg/api
+github.com/pdfcpu/pdfcpu/pkg/filter
+github.com/pdfcpu/pdfcpu/pkg/font
+github.com/pdfcpu/pdfcpu/pkg/log
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/validate
+github.com/pdfcpu/pdfcpu/pkg/types
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # go.etcd.io/bbolt v1.3.5-0.20200615073812-232d8fc87f50
@@ -151,6 +166,8 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh/terminal
+# golang.org/x/image v0.0.0-20200927104501-e162460cd6b5
+golang.org/x/image/ccitt
 # golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 golang.org/x/net/bpf
 golang.org/x/net/internal/iana
@@ -192,3 +209,5 @@ google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 # gopkg.in/gormigrate.v1 v1.6.0
 gopkg.in/gormigrate.v1
+# gopkg.in/yaml.v2 v2.3.0
+gopkg.in/yaml.v2

@@ -5,14 +5,31 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
+	"fmt"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcutil/base58"
-	"github.com/pkg/errors"
+)
+
+const (
+	// EncodedKeyLength is the size of a modern encoded key, as exported by the clients.
+	EncodedKeyLength = 147
+
+	// EncodedKeyLengthLegacy is the size of a legacy key, when salt resided only in the 2nd key.
+	EncodedKeyLengthLegacy = 136
 )
 
 type ChallengePrivateKey struct {
 	key *btcec.PrivateKey
+}
+
+type encryptedPrivateKey struct {
+	Version      uint8
+	Birthday     uint16
+	EphPublicKey []byte // 33-byte compressed public-key
+	CipherText   []byte // 64-byte encrypted text
+	Salt         []byte // (optional) 8-byte salt
 }
 
 type DecryptedPrivateKey struct {
@@ -37,7 +54,7 @@ func (k *ChallengePrivateKey) SignSha(payload []byte) ([]byte, error) {
 	sig, err := k.key.Sign(hash[:])
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to sign payload")
+		return nil, fmt.Errorf("failed to sign payload: %w", err)
 	}
 
 	return sig.Serialize(), nil
@@ -53,43 +70,12 @@ func (k *ChallengePrivateKey) PubKey() *ChallengePublicKey {
 }
 
 func (k *ChallengePrivateKey) DecryptKey(encryptedKey string, network *Network) (*DecryptedPrivateKey, error) {
-
-	reader := bytes.NewReader(base58.Decode(encryptedKey))
-	version, err := reader.ReadByte()
+	decoded, err := decodeEncryptedPrivateKey(encryptedKey)
 	if err != nil {
-		return nil, errors.Wrapf(err, "decrypting key")
-	}
-	if version != 2 {
-		return nil, errors.Errorf("decrypting key: found key version %v, expected 2", version)
+		return nil, err
 	}
 
-	birthdayBytes := make([]byte, 2)
-	rawPubEph := make([]byte, serializedPublicKeyLength)
-	ciphertext := make([]byte, 64)
-	recoveryCodeSalt := make([]byte, 8)
-
-	n, err := reader.Read(birthdayBytes)
-	if err != nil || n != 2 {
-		return nil, errors.Errorf("decrypting key: failed to read birthday")
-	}
-	birthday := binary.BigEndian.Uint16(birthdayBytes)
-
-	n, err = reader.Read(rawPubEph)
-	if err != nil || n != serializedPublicKeyLength {
-		return nil, errors.Errorf("decrypting key: failed to read pubeph")
-	}
-
-	n, err = reader.Read(ciphertext)
-	if err != nil || n != 64 {
-		return nil, errors.Errorf("decrypting key: failed to read ciphertext")
-	}
-
-	n, err = reader.Read(recoveryCodeSalt)
-	if err != nil || n != 8 {
-		return nil, errors.Errorf("decrypting key: failed to read recoveryCodeSalt")
-	}
-
-	plaintext, err := decryptWithPrivKey(k.key, rawPubEph, ciphertext)
+	plaintext, err := decryptWithPrivKey(k.key, decoded.EphPublicKey, decoded.CipherText)
 	if err != nil {
 		return nil, err
 	}
@@ -99,11 +85,68 @@ func (k *ChallengePrivateKey) DecryptKey(encryptedKey string, network *Network) 
 
 	privKey, err := NewHDPrivateKeyFromBytes(rawPrivKey, rawChainCode, network)
 	if err != nil {
-		return nil, errors.Wrapf(err, "decrypting key: failed to parse key")
+		return nil, fmt.Errorf("decrypting key: failed to parse key: %w", err)
 	}
 
 	return &DecryptedPrivateKey{
 		privKey,
-		int(birthday),
+		int(decoded.Birthday),
 	}, nil
+}
+
+func decodeEncryptedPrivateKey(encodedKey string) (*encryptedPrivateKey, error) {
+	reader := bytes.NewReader(base58.Decode(encodedKey))
+	version, err := reader.ReadByte()
+	if err != nil {
+		return nil, fmt.Errorf("decrypting key: %w", err)
+	}
+	if version != 2 {
+		return nil, fmt.Errorf("decrypting key: found key version %v, expected 2", version)
+	}
+
+	birthdayBytes := make([]byte, 2)
+	rawPubEph := make([]byte, serializedPublicKeyLength)
+	ciphertext := make([]byte, 64)
+	recoveryCodeSalt := make([]byte, 8)
+
+	n, err := reader.Read(birthdayBytes)
+	if err != nil || n != 2 {
+		return nil, errors.New("decrypting key: failed to read birthday")
+	}
+	birthday := binary.BigEndian.Uint16(birthdayBytes)
+
+	n, err = reader.Read(rawPubEph)
+	if err != nil || n != serializedPublicKeyLength {
+		return nil, errors.New("decrypting key: failed to read pubeph")
+	}
+
+	n, err = reader.Read(ciphertext)
+	if err != nil || n != 64 {
+		return nil, errors.New("decrypting key: failed to read ciphertext")
+	}
+
+	// NOTE:
+	// The very, very old format for encrypted keys didn't contain the encryption salt in the first
+	// of the two keys. This is a valid scenario, and a zero-filled salt can be returned.
+	if shouldHaveSalt(encodedKey) {
+		n, err = reader.Read(recoveryCodeSalt)
+
+		if err != nil || n != 8 {
+			return nil, errors.New("decrypting key: failed to read recoveryCodeSalt")
+		}
+	}
+
+	result := &encryptedPrivateKey{
+		Version:      version,
+		Birthday:     birthday,
+		EphPublicKey: rawPubEph,
+		CipherText:   ciphertext,
+		Salt:         recoveryCodeSalt,
+	}
+
+	return result, nil
+}
+
+func shouldHaveSalt(encodedKey string) bool {
+	return len(encodedKey) > EncodedKeyLengthLegacy // not military-grade logic, but works for now
 }

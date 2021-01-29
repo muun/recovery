@@ -3,6 +3,7 @@ package libwallet
 import (
 	"bytes"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -12,7 +13,6 @@ import (
 	"github.com/lightningnetwork/lnd/lnwire"
 	"github.com/muun/libwallet/hdpath"
 	"github.com/muun/libwallet/sphinx"
-	"github.com/pkg/errors"
 )
 
 type coinIncomingSwap struct {
@@ -24,6 +24,7 @@ type coinIncomingSwap struct {
 	SwapServerPublicKey []byte
 	ExpirationHeight    int64
 	VerifyOutputAmount  bool // used only for fulfilling swaps through IncomingSwap
+	Collect             btcutil.Amount
 }
 
 func (c *coinIncomingSwap) SignInput(index int, tx *wire.MsgTx, userKey *HDPrivateKey, muunKey *HDPublicKey) error {
@@ -124,13 +125,16 @@ func (c *coinIncomingSwap) SignInput(index int, tx *wire.MsgTx, userKey *HDPriva
 
 	// Now check the information we have against the sphinx created by the payer
 	if len(c.Sphinx) > 0 {
+		// This incoming swap might be collecting debt, which would be deducted from the outputAmount
+		// so we add it back up so the amount will match with the sphinx
+		expectedAmount := outputAmount + lnwire.NewMSatFromSatoshis(c.Collect)
 		err = sphinx.Validate(
 			c.Sphinx,
 			c.PaymentHash256,
 			secrets.PaymentSecret,
 			nodeKey,
 			uint32(c.ExpirationHeight),
-			outputAmount,
+			expectedAmount,
 			c.Network,
 		)
 		if err != nil {
@@ -175,7 +179,7 @@ func (c *coinIncomingSwap) FullySignInput(index int, tx *wire.MsgTx, userKey, mu
 
 	derivedMuunKey, err := muunKey.DeriveTo(secrets.KeyPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to derive muun key")
+		return fmt.Errorf("failed to derive muun key: %w", err)
 	}
 
 	muunSignature, err := c.signature(index, tx, userKey.PublicKey(), derivedMuunKey.PublicKey(), derivedMuunKey)

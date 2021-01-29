@@ -8,39 +8,36 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcutil"
+	"github.com/muun/libwallet"
 )
 
 func main() {
-	chainService, close, _ := startChainService()
-	defer close()
-
 	printWelcomeMessage()
 
 	recoveryCode := readRecoveryCode()
 
-	userRawKey := readKey("first encrypted private key", 147)
-	userKey := buildExtendedKey(userRawKey, recoveryCode)
-	userKey.Key.Path = "m/1'/1'"
+	userRawKey := readKey("first encrypted private key")
+	muunRawKey := readKey("second encrypted private key")
 
-	muunRawKey := readKey("second encrypted private key", 147)
-	muunKey := buildExtendedKey(muunRawKey, recoveryCode)
+	userKey, muunKey := buildExtendedKeys(userRawKey, muunRawKey, recoveryCode)
+	userKey.Key.Path = "m/1'/1'"
 
 	sweepAddress := readSweepAddress()
 
 	fmt.Println("")
-	fmt.Println("Preparing to scan the blockchain from your wallet creation block")
-	fmt.Println("Note that only confirmed transactions can be detected")
-	fmt.Println("\nThis may take a while")
+	fmt.Println("\nStarting scan of all your addresses. This may take a while")
 
 	sweeper := Sweeper{
-		ChainService: chainService,
 		UserKey:      userKey.Key,
 		MuunKey:      muunKey.Key,
 		Birthday:     muunKey.Birthday,
 		SweepAddress: sweepAddress,
 	}
 
-	utxos := sweeper.GetUTXOs()
+	utxos, err := sweeper.GetUTXOs()
+	if err != nil {
+		exitWithError(err)
+	}
 
 	fmt.Println("")
 
@@ -131,21 +128,29 @@ func readRecoveryCode() string {
 	return finalRC
 }
 
-func readKey(keyType string, characters int) string {
+func readKey(keyType string) string {
 	fmt.Println("")
 	fmt.Printf("Enter your %v", keyType)
 	fmt.Println()
 	fmt.Println("(it looks like this: '9xzpc7y6sNtRvh8Fh...')")
 	fmt.Print("> ")
 
-	userInput := scanMultiline(characters)
+	// NOTE:
+	// Users will most likely copy and paste their keys from the Emergency Kit PDF. In this case,
+	// input will come suddenly in multiple lines, so a simple scan & retry (let's say 3 lines
+	// were pasted)  will attempt to parse a key and fail 2 times in a row, with leftover characters
+	// until the user presses enter to fail for a 3rd time.
 
-	if len(userInput) != characters {
-		fmt.Printf("Your %v must have %v characters", keyType, characters)
-		fmt.Println("")
-		fmt.Println("Please, try again")
+	// Given the line lengths actually found in our Emergency Kits, we have a simple solution for now:
+	// scan a minimum length of characters. Pasing from current versions of the Emergency Kit will
+	// only go past a minimum length when the key being entered is complete, in all cases.
+	userInput := scanMultiline(libwallet.EncodedKeyLengthLegacy)
 
-		return readKey(keyType, characters)
+	if len(userInput) < libwallet.EncodedKeyLengthLegacy {
+		// This is obviously invalid. Other problems will be detected later on, during the actual
+		// decoding and decryption stage.
+		fmt.Println("The key you entered doesn't look valid\nPlease, try again")
+		return readKey(keyType)
 	}
 
 	return userInput
@@ -238,4 +243,9 @@ func scanMultiline(minChars int) string {
 	}
 
 	return result.String()
+}
+
+func exitWithError(reason error) {
+	fmt.Println("\nError while scanning. Can't continue. Please, try again later.")
+	os.Exit(1)
 }
