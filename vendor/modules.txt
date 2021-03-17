@@ -120,6 +120,8 @@ github.com/lightningnetwork/lnd/clock
 github.com/lightningnetwork/lnd/queue
 # github.com/lightningnetwork/lnd/ticker v1.0.0
 github.com/lightningnetwork/lnd/ticker
+# github.com/logrusorgru/aurora v2.0.3+incompatible
+github.com/logrusorgru/aurora
 # github.com/ltcsuite/ltcd v0.0.0-20190101042124-f37f8bf35796
 github.com/ltcsuite/ltcd/chaincfg
 github.com/ltcsuite/ltcd/chaincfg/chainhash
@@ -128,7 +130,7 @@ github.com/ltcsuite/ltcd/wire
 github.com/mattn/go-sqlite3
 # github.com/miekg/dns v1.1.29
 github.com/miekg/dns
-# github.com/muun/libwallet v0.7.0
+# github.com/muun/libwallet v0.8.0
 github.com/muun/libwallet
 github.com/muun/libwallet/addresses
 github.com/muun/libwallet/aescbc
@@ -141,7 +143,7 @@ github.com/muun/libwallet/recoverycode
 github.com/muun/libwallet/sphinx
 github.com/muun/libwallet/swaps
 github.com/muun/libwallet/walletdb
-# github.com/pdfcpu/pdfcpu v0.3.8
+# github.com/pdfcpu/pdfcpu v0.3.9
 github.com/pdfcpu/pdfcpu/internal/config
 github.com/pdfcpu/pdfcpu/internal/corefont/metrics
 github.com/pdfcpu/pdfcpu/pkg/api

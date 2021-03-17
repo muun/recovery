@@ -39,22 +39,33 @@ type Scanner struct {
 	log     *utils.Logger
 }
 
+// Report contains information about an ongoing scan.
+type Report struct {
+	ScannedAddresses int
+	UtxosFound       []*Utxo
+	Err              error
+}
+
 // Utxo references a transaction output, plus the associated MuunAddress and script.
 type Utxo struct {
 	TxID        string
 	OutputIndex int
-	Amount      int
+	Amount      int64
 	Address     libwallet.MuunAddress
 	Script      []byte
 }
 
 // scanContext contains the synchronization objects for a single Scanner round, to manage Tasks.
 type scanContext struct {
+	// Task management:
 	addresses chan libwallet.MuunAddress
-	results   chan Utxo
-	errors    chan error
+	results   chan *scanTaskResult
 	done      chan struct{}
 	wg        *sync.WaitGroup
+
+	// Progress reporting:
+	reports     chan *Report
+	reportCache *Report
 }
 
 // NewScanner creates an initialized Scanner.
@@ -67,34 +78,54 @@ func NewScanner() *Scanner {
 }
 
 // Scan an address space and return all relevant transactions for a sweep.
-func (s *Scanner) Scan(addresses chan libwallet.MuunAddress) ([]Utxo, error) {
-	var results []Utxo
+func (s *Scanner) Scan(addresses chan libwallet.MuunAddress) <-chan *Report {
 	var waitGroup sync.WaitGroup
 
 	// Create the Context that goroutines will share:
 	ctx := &scanContext{
 		addresses: addresses,
-		results:   make(chan Utxo),
-		errors:    make(chan error),
+		results:   make(chan *scanTaskResult),
 		done:      make(chan struct{}),
 		wg:        &waitGroup,
+
+		reports: make(chan *Report),
+		reportCache: &Report{
+			ScannedAddresses: 0,
+			UtxosFound:       []*Utxo{},
+		},
 	}
 
 	// Start the scan in background:
+	go s.startCollect(ctx)
 	go s.startScan(ctx)
 
+	return ctx.reports
+}
+
+func (s *Scanner) startCollect(ctx *scanContext) {
 	// Collect all results until the done signal, or abort on the first error:
 	for {
 		select {
-		case err := <-ctx.errors:
-			close(ctx.done) // send the done signal ourselves
-			return nil, err
-
 		case result := <-ctx.results:
-			results = append(results, result)
+			newReport := *ctx.reportCache // create a new private copy
+			ctx.reportCache = &newReport
+
+			if result.Err != nil {
+				ctx.reportCache.Err = s.log.Errorf("Scan failed: %w", result.Err)
+				ctx.reports <- ctx.reportCache
+
+				close(ctx.done)    // failed after several retries, we give up and terminate all tasks
+				close(ctx.reports) // close the report channel to let callers know we're done
+				return
+			}
+
+			ctx.reportCache.ScannedAddresses += len(result.Task.addresses)
+			ctx.reportCache.UtxosFound = append(ctx.reportCache.UtxosFound, result.Utxos...)
+			ctx.reports <- ctx.reportCache
 
 		case <-ctx.done:
-			return results, nil
+			close(ctx.reports) // close the report channel to let callers know we're done
+			return
 		}
 	}
 }
@@ -148,18 +179,8 @@ func (s *Scanner) scanBatch(ctx *scanContext, client *electrum.Client, batch []l
 		exit:      ctx.done,
 	}
 
-	// Do the thing:
-	addressResults, err := task.Execute()
-
-	if err != nil {
-		ctx.errors <- s.log.Errorf("Scan failed: %w", err)
-		return
-	}
-
-	// Send back all results:
-	for _, result := range addressResults {
-		ctx.results <- result
-	}
+	// Do the thing and send back the result:
+	ctx.results <- task.Execute()
 }
 
 func streamBatches(addresses chan libwallet.MuunAddress) chan []libwallet.MuunAddress {

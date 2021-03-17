@@ -16,7 +16,11 @@ limitations under the License.
 
 package pdfcpu
 
-import "github.com/pkg/errors"
+import (
+	"strings"
+
+	"github.com/pkg/errors"
+)
 
 var (
 	errNoBookmarks    = errors.New("pdfcpu: no bookmarks available")
@@ -75,6 +79,33 @@ func (ctx *Context) positionToOutlineTreeLevel1() (Dict, *IndirectRef, error) {
 	return d, first, nil
 }
 
+func (ctx *Context) dereferenceDestPageNumber(dest Object) (IndirectRef, error) {
+	var ir IndirectRef
+	switch dest := dest.(type) {
+	case Name:
+		arr, err := ctx.dereferenceDestinationArray(dest.Value())
+		if err != nil {
+			return ir, err
+		}
+		ir = arr[0].(IndirectRef)
+	case StringLiteral:
+		arr, err := ctx.dereferenceDestinationArray(dest.Value())
+		if err != nil {
+			return ir, err
+		}
+		ir = arr[0].(IndirectRef)
+	case HexLiteral:
+		arr, err := ctx.dereferenceDestinationArray(dest.Value())
+		if err != nil {
+			return ir, err
+		}
+		ir = arr[0].(IndirectRef)
+	case Array:
+		ir = dest[0].(IndirectRef)
+	}
+	return ir, nil
+}
+
 // BookmarksForOutlineLevel1 returns bookmarks incliuding page span info.
 func (ctx *Context) BookmarksForOutlineLevel1() ([]Bookmark, error) {
 	d, first, err := ctx.positionToOutlineTreeLevel1()
@@ -91,39 +122,29 @@ func (ctx *Context) BookmarksForOutlineLevel1() ([]Bookmark, error) {
 			return nil, err
 		}
 
-		title, _ := Text(d["Title"])
+		s, _ := Text(d["Title"])
+		var sb strings.Builder
+		for i := 0; i < len(s); i++ {
+			b := s[i]
+			if b >= 32 {
+				if b == 32 {
+					b = '_'
+				}
+				sb.WriteByte(b)
+			}
+		}
+		title := sb.String()
 
 		dest, found := d["Dest"]
 		if !found {
 			return nil, errNoBookmarks
 		}
 
-		var ir IndirectRef
-
 		dest, _ = ctx.Dereference(dest)
 
-		switch dest := dest.(type) {
-		case Name:
-			arr, err := ctx.dereferenceDestinationArray(dest.Value())
-			if err != nil {
-				return nil, err
-			}
-			ir = arr[0].(IndirectRef)
-		case StringLiteral:
-			arr, err := ctx.dereferenceDestinationArray(dest.Value())
-			if err != nil {
-				return nil, err
-			}
-			ir = arr[0].(IndirectRef)
-		case HexLiteral:
-			arr, err := ctx.dereferenceDestinationArray(dest.Value())
-			if err != nil {
-				return nil, err
-			}
-			ir = arr[0].(IndirectRef)
-		case Array:
-			ir = dest[0].(IndirectRef)
-
+		ir, err := ctx.dereferenceDestPageNumber(dest)
+		if err != nil {
+			return nil, err
 		}
 
 		pageFrom, err := ctx.PageNumber(ir.ObjectNumber.Value())

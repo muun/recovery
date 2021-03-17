@@ -71,7 +71,7 @@ type BroadcastResponse struct {
 type UnspentRef struct {
 	TxHash string `json:"tx_hash"`
 	TxPos  int    `json:"tx_pos"`
-	Value  int    `json:"value"`
+	Value  int64  `json:"value"`
 	Height int    `json:"height"`
 }
 

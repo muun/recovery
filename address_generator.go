@@ -29,7 +29,24 @@ func (g *AddressGenerator) Addresses() map[string]signingDetails {
 	return g.addrs
 }
 
-func (g *AddressGenerator) Generate() {
+// Stream returns a channel that emits all addresses generated.
+func (g *AddressGenerator) Stream() chan libwallet.MuunAddress {
+	ch := make(chan libwallet.MuunAddress)
+
+	go func() {
+		g.generate()
+
+		for _, details := range g.Addresses() {
+			ch <- details.Address
+		}
+
+		close(ch)
+	}()
+
+	return ch
+}
+
+func (g *AddressGenerator) generate() {
 	g.generateChangeAddrs()
 	g.generateExternalAddrs()
 	g.generateContactAddrs(100)
