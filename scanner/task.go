@@ -20,10 +20,16 @@ type scanTask struct {
 	exit      chan struct{}
 }
 
+// scanTaskResult contains a summary of the execution of a task.
+type scanTaskResult struct {
+	Task  *scanTask
+	Utxos []*Utxo
+	Err   error
+}
+
 // Execute obtains the Utxo set for the Task address, implementing a retry strategy.
-func (t *scanTask) Execute() ([]Utxo, error) {
-	results := make(chan []Utxo)
-	errors := make(chan error)
+func (t *scanTask) Execute() *scanTaskResult {
+	results := make(chan *scanTaskResult)
 	timeout := time.After(t.timeout)
 
 	// Keep the last error around, in case we reach the timeout and want to know the reason:
@@ -31,61 +37,60 @@ func (t *scanTask) Execute() ([]Utxo, error) {
 
 	for {
 		// Attempt to run the task:
-		go t.tryExecuteAsync(results, errors)
+		go t.tryExecuteAsync(results)
 
 		// Wait until a result is sent, the timeout is reached or the task canceled, capturing errors
 		// errors along the way:
 		select {
 		case <-t.exit:
-			return []Utxo{}, nil // stop retrying when we get the done signal
+			return t.exitResult() // stop retrying when we get the done signal
 
 		case result := <-results:
-			return result, nil
+			if result.Err == nil {
+				return result // we're done! nice work everyone.
+			}
 
-		case err := <-errors:
-			lastError = err
+			lastError = result.Err // keep retrying when an attempt fails
 
 		case <-timeout:
-			return nil, fmt.Errorf("Task timed out. Last error: %w", lastError)
+			return t.errorResult(fmt.Errorf("Task timed out. Last error: %w", lastError)) // stop on timeout
 		}
 	}
 }
 
-func (t *scanTask) tryExecuteAsync(results chan []Utxo, errors chan error) {
+func (t *scanTask) tryExecuteAsync(results chan *scanTaskResult) {
 	// Errors will almost certainly arise from Electrum server failures, which are extremely
 	// common. Unreachable IPs, dropped connections, sudden EOFs, etc. We'll run this task, assuming
 	// the servers are at fault when something fails, disconnecting and cycling them as we retry.
-	result, err := t.tryExecute()
+	result := t.tryExecute()
 
-	if err != nil {
+	if result.Err != nil {
 		t.client.Disconnect()
-		errors <- err
-		return
 	}
 
 	results <- result
 }
 
-func (t *scanTask) tryExecute() ([]Utxo, error) {
+func (t *scanTask) tryExecute() *scanTaskResult {
 	// If our client is not connected, make an attempt to connect to a server:
 	if !t.client.IsConnected() {
 		err := t.client.Connect(t.servers.NextServer())
 
 		if err != nil {
-			return nil, err
+			return t.errorResult(err)
 		}
 	}
 
 	// Prepare the output scripts for all given addresses:
 	outputScripts, err := getOutputScripts(t.addresses)
 	if err != nil {
-		return nil, err
+		return t.errorResult(err)
 	}
 
 	// Prepare the index hashes that Electrum requires to list outputs:
 	indexHashes, err := getIndexHashes(outputScripts)
 	if err != nil {
-		return nil, err
+		return t.errorResult(err)
 	}
 
 	// Call Electrum to get the unspent output list, grouped by index for each address:
@@ -98,15 +103,15 @@ func (t *scanTask) tryExecute() ([]Utxo, error) {
 	}
 
 	if err != nil {
-		return nil, err
+		return t.errorResult(err)
 	}
 
 	// Compile the results into a list of `Utxos`:
-	var utxos []Utxo
+	var utxos []*Utxo
 
 	for i, unspentRefGroup := range unspentRefGroups {
 		for _, unspentRef := range unspentRefGroup {
-			newUtxo := Utxo{
+			newUtxo := &Utxo{
 				TxID:        unspentRef.TxHash,
 				OutputIndex: unspentRef.TxPos,
 				Amount:      unspentRef.Value,
@@ -118,7 +123,7 @@ func (t *scanTask) tryExecute() ([]Utxo, error) {
 		}
 	}
 
-	return utxos, nil
+	return t.successResult(utxos)
 }
 
 func (t *scanTask) listUnspentWithBatching(indexHashes []string) ([][]electrum.UnspentRef, error) {
@@ -143,6 +148,18 @@ func (t *scanTask) listUnspentWithoutBatching(indexHashes []string) ([][]electru
 	}
 
 	return unspentRefGroups, nil
+}
+
+func (t *scanTask) errorResult(err error) *scanTaskResult {
+	return &scanTaskResult{Task: t, Err: err}
+}
+
+func (t *scanTask) successResult(utxos []*Utxo) *scanTaskResult {
+	return &scanTaskResult{Task: t, Utxos: utxos}
+}
+
+func (t *scanTask) exitResult() *scanTaskResult {
+	return &scanTaskResult{Task: t}
 }
 
 // getIndexHashes calculates all the Electrum index hashes for a list of output scripts.

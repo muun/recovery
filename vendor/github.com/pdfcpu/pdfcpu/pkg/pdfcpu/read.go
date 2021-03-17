@@ -828,7 +828,7 @@ func scanTrailerDictRemainder(s *bufio.Scanner, line string, buf bytes.Buffer) (
 	var i, j, k int
 
 	buf.WriteString(line)
-	buf.WriteString(" ")
+	buf.WriteString("\x0a")
 	log.Read.Printf("scanTrailer dictBuf after start tag: <%s>\n", line)
 
 	line = line[2:]
@@ -841,7 +841,7 @@ func scanTrailerDictRemainder(s *bufio.Scanner, line string, buf bytes.Buffer) (
 				return "", err
 			}
 			buf.WriteString(line)
-			buf.WriteString(" ")
+			buf.WriteString("\x0a")
 			log.Read.Printf("scanTrailer dictBuf next line: <%s>\n", line)
 		}
 
@@ -869,7 +869,7 @@ func scanTrailerDictRemainder(s *bufio.Scanner, line string, buf bytes.Buffer) (
 				return "", err
 			}
 			buf.WriteString(line)
-			buf.WriteString(" ")
+			buf.WriteString("\x0a")
 			log.Read.Printf("scanTrailer dictBuf next line: <%s>\n", line)
 		} else {
 			// Yes <<
@@ -1091,13 +1091,14 @@ func bypassXrefSection(ctx *Context) error {
 
 	for {
 		line, err := scanLineRaw(s)
+		//println(line)
 		if err != nil {
 			break
 		}
 		if withinXref {
 			offset += int64(len(line) + eolCount)
 			if withinTrailer {
-				bb = append(bb, ' ')
+				bb = append(bb, '\n')
 				bb = append(bb, line...)
 				i := strings.Index(line, "startxref")
 				if i >= 0 {
@@ -1660,6 +1661,14 @@ func object(ctx *Context, offset int64, objNr, genNr int) (o Object, endInd, str
 		// This is suspicious, but ok if two object numbers point to same offset and only one of them is used
 		// (compare entry.RefCount) like for cases where the PDF Writer is MS Word 2013.
 		log.Read.Printf("object %d: non matching objNr(%d) or generationNumber(%d) tags found.\n", objNr, *objectNr, *generationNr)
+	}
+
+	l = strings.TrimSpace(l)
+	if len(l) == 0 {
+		// 7.3.9
+		// Specifying the null object as the value of a dictionary entry (7.3.7, "Dictionary Objects")
+		// shall be equivalent to omitting the entry entirely.
+		return nil, endInd, streamInd, streamOffset, err
 	}
 
 	o, err = parseObject(&l)

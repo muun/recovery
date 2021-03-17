@@ -1,36 +1,45 @@
 ![muun](https://muun.com/images/github-banner-v2.png)
 
-## About
+Welcome!
 
-You can use this tool to swipe all the funds in your muun account to an address of your choosing.
+You can use this tool to transfer all funds from your Muun wallet to an address of your choosing.
 
-To do this you will need:
-* The recovery code, that you set up when you created your muun account
-* The two encrypted private keys that you exported from your muun wallet
-* A destination Bitcoin address where all your funds will be sent
+**This process requires no collaboration from Muun to work**. We wholeheartedly believe that self-custodianship
+is an essential right, and we want to create a world in which people have complete and exclusive
+control over their own money. Bitcoin has finally made this possible.
 
-The process of scanning the blockchain to recover your funds can take several hours, please be ready to keep it running. The scan starts at the block your wallet was created to make it faster, but depending on when that was it can take long. 
+## Usage
 
-## Setup
+To execute a recovery, you will need:
+
+1. **Your Recovery Code**, which you wrote down during your security setup
+2. **Your Emergency Kit PDF**, which you exported from the app
+3. **Your destination bitcoin address**, where all your funds will be sent
+
+Once you have that, you must:
 
 1. Install [golang](https://golang.org/)
 2. Open a terminal window
-3. Run this code:
+3. Run:
 
-```
-git clone https://github.com/muun/recovery
-cd recovery
-go run -mod=vendor .
-```
+        git clone https://github.com/muun/recovery
+        cd recovery
+        ./recovery-tool <path to your Emergency Kit PDF>
+
+The recovery process takes only a few minutes  (depending on your connection).
 
 ## Questions
 
-If you have any questions, contact us at contact@muun.com
+If you have any questions, we'll be happy to answer them. Contact us at [contact@muun.com](mailto:contact@muun.com)
 
 ## Auditing
 
-* Most of the key handling and transaction crafting operations happens in the **libwallet** module.
-* All the blockchain scan code is in the **neutrino** module.
+Begin by reading `main.go`, and follow calls to other files and modules as you see fit. We always work
+to improve code quality and readability with each release, so that auditing is easier and more effective.
+
+The low-level encryption, key handling and transaction crafting code can be found in the `libwallet`
+module, and it's the same our iOS and Android applications use.
+
 
 ## Responsible Disclosure
 
