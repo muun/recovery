@@ -1,5 +1,7 @@
 ![muun](https://muun.com/images/github-banner-v2.png)
 
+## Recovery Tool
+
 Welcome!
 
 You can use this tool to transfer all funds from your Muun wallet to an address of your choosing.
