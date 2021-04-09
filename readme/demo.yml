@@ -1,0 +1,501 @@
+# This is a Terminalizer (https://github.com/faressoft/terminalizer) configuration file.
+
+# Render with:
+# $ terminalizer render demo.yml -o demo-unoptimized.gif
+
+# Optimize with:
+# $ gifsicle --optimize=3 --colors=32 -i demo-unoptimized.gif -o demo.gif
+
+config:
+  env:
+    recording: true
+
+  rows: 24
+  cols: 100
+
+  repeat: 0
+  quality: 100
+
+  frameDelay: auto
+  maxIdleTime: auto
+
+  frameBox:
+    type: solid
+    title: null
+    style:
+      border: 0px black solid
+
+  watermark:
+    imagePath: null
+    style:
+      position: absolute
+      right: 15px
+      bottom: 15px
+      opacity: 0.9
+
+  cursorStyle: block
+  fontFamily: "Monaco, Lucida Console, Ubuntu Mono, Monospace"
+  fontSize: 12
+  lineHeight: 1
+  letterSpacing: 0
+
+  theme:
+    background: "transparent"
+    foreground: "#afafaf"
+    cursor: "#c7c7c7"
+    black: "#232628"
+    red: "#fc4384"
+    green: "#b3e33b"
+    yellow: "#ffa727"
+    blue: "#75dff2"
+    magenta: "#ae89fe"
+    cyan: "#708387"
+    white: "#d5d5d0"
+    brightBlack: "#626566"
+    brightRed: "#ff7fac"
+    brightGreen: "#c8ed71"
+    brightYellow: "#ebdf86"
+    brightBlue: "#75dff2"
+    brightMagenta: "#ae89fe"
+    brightCyan: "#b1c6ca"
+    brightWhite: "#f9f9f4"
+
+records:
+  - delay: 100
+    content: "\e[1;32mrecovery\e[00m$ "
+  - delay: "600"
+    content: "."
+  - delay: "20"
+    content: "/"
+  - delay: "20"
+    content: "r"
+  - delay: "20"
+    content: "e"
+  - delay: "20"
+    content: "c"
+  - delay: "20"
+    content: "o"
+  - delay: "20"
+    content: "v"
+  - delay: "20"
+    content: "e"
+  - delay: "20"
+    content: "r"
+  - delay: "20"
+    content: "y"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "t"
+  - delay: "20"
+    content: "o"
+  - delay: "20"
+    content: "o"
+  - delay: "20"
+    content: "l"
+  - delay: "20"
+    content: " "
+  - delay: "500"
+    content: "\e[1;37m~"
+  - delay: "20"
+    content: "/"
+  - delay: "20"
+    content: "d"
+  - delay: "20"
+    content: "o"
+  - delay: "20"
+    content: "w"
+  - delay: "20"
+    content: "n"
+  - delay: "20"
+    content: "l"
+  - delay: "20"
+    content: "o"
+  - delay: "20"
+    content: "a"
+  - delay: "20"
+    content: "d"
+  - delay: "20"
+    content: "s"
+  - delay: "20"
+    content: "/"
+  - delay: "20"
+    content: "M"
+  - delay: "20"
+    content: "u"
+  - delay: "20"
+    content: "u"
+  - delay: "20"
+    content: "n"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "E"
+  - delay: "20"
+    content: "m"
+  - delay: "20"
+    content: "e"
+  - delay: "20"
+    content: "r"
+  - delay: "20"
+    content: "g"
+  - delay: "20"
+    content: "e"
+  - delay: "20"
+    content: "n"
+  - delay: "20"
+    content: "c"
+  - delay: "20"
+    content: "y"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "K"
+  - delay: "20"
+    content: "i"
+  - delay: "20"
+    content: "t"
+  - delay: "20"
+    content: "."
+  - delay: "20"
+    content: "p"
+  - delay: "20"
+    content: "d"
+  - delay: "20"
+    content: "f"
+  - delay: 1200
+    content: "\e[0m\r\n\n"
+  - delay: 500
+    content: "\e[1;34mMuun Recovery Tool v2.1.0\e[0m\r\n\r\nTo recover your funds, you will need:\r\n\r\n1. \e[1;33mYour Recovery Code\e[0m, which you wrote down during your security setup\r\n2. \e[1;33mYour Emergency Kit PDF\e[0m, which you exported from the app\r\n3. \e[1;33mYour destination bitcoin address\e[0m, where all your funds will be sent\r\n\r\nIf you have any questions, we'll be happy to answer them. Contact us at \e[1;34msupport@muun.com\e[0m\r\n\r\n\e[1;33mEnter your Recovery Code\e[0m\r\n(it looks like this: 'ABCD-1234-POW2-R561-P120-JK26-12RW-45TT')\r\n➜ "
+  - delay: 2500
+    content: "L"
+  - delay: "20"
+    content: "A"
+  - delay: "20"
+    content: "8"
+  - delay: "20"
+    content: "H"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "D"
+  - delay: "20"
+    content: "B"
+  - delay: "20"
+    content: "9"
+  - delay: "20"
+    content: "M"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "E"
+  - delay: "20"
+    content: "J"
+  - delay: "20"
+    content: "R"
+  - delay: "20"
+    content: "P"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "Y"
+  - delay: "20"
+    content: "J"
+  - delay: "20"
+    content: "R"
+  - delay: "20"
+    content: "Q"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "B"
+  - delay: "20"
+    content: "W"
+  - delay: "20"
+    content: "T"
+  - delay: "20"
+    content: "4"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "L"
+  - delay: "20"
+    content: "J"
+  - delay: "20"
+    content: "9"
+  - delay: "20"
+    content: "B"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "F"
+  - delay: "20"
+    content: "C"
+  - delay: "20"
+    content: "P"
+  - delay: "20"
+    content: "Z"
+  - delay: "20"
+    content: "-"
+  - delay: "20"
+    content: "R"
+  - delay: "20"
+    content: "8"
+  - delay: "20"
+    content: "V"
+  - delay: "20"
+    content: "R"
+  - delay: 405
+    content: "\r\n"
+  - delay: 6
+    content: "\r\n\e[1;33mEnter your destination bitcoin address\e[0m\r\n➜ "
+  - delay: 1500
+    content: bc1qepja3llne3xp27car3gvvy7kzg7nfsacqvfe5l5jx4fa2f2v3wlskh9le7
+  - delay: 700
+    content: "\r\n\r\nStarting scan of all possible addresses. This will take a few minutes.\r\n► \e[1;37mFinding servers...\e[0m"
+  - delay: 2500
+    content: "\r► \e[1;37mScanned addresses\e[0m: 100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 900 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 1200 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 1500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 2000 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 3400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 3500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 5400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 5500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 6200 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 6500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 6900 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 7400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 7800 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 8100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 8400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 8900 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 9300 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 9700 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 10100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 11100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 11200 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 11400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 11600 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 12100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 12400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 13100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 13300 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 13400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 13500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 13800 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 14100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 14500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 14900 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 15000 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 15500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 15800 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 16000 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 16200 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 16300 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 16900 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 17200 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 17400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 17500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 17600 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 17700 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 17800 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 18200 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 18300 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 18800 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 19100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 19500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 19900 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 20000 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 20300 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 20600 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 20700 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 21400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 21800 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 21900 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 22100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 22400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 24100 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 24500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 24600 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 25000 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 25400 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 25500 | \e[1;37mSats found\e[0m: 0"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 26000 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 26100 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 26300 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 26600 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 26900 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 27400 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 28000 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 28600 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 28800 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 29400 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 29600 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 30900 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 31200 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 31400 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 31900 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 32300 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 33000 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 33400 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 33800 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 34100 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 34200 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 34600 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 34700 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 35000 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 35100 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 35700 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 36000 | \e[1;37mSats found\e[0m: 11155"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 37400 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 37700 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 38000 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 38300 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 38400 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 38500 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 39000 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 39700 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 40100 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 40400 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 41600 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 42100 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 43000 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 43600 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 43900 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 44000 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 44400 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 44900 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 45900 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 47500 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 10
+    content: "\r► \e[1;37mScanned addresses\e[0m: 48200 | \e[1;37mSats found\e[0m: 56307"
+  - delay: 71
+    content: "\r\n\r\n\e[1;32m✓ Scan complete\e[0m\r\n• \e[1;37m11155\e[0m sats in bc1qefj50ll0a6pf0jyd7x96w5ejzkelc6fxxypyu0fl7uspdtr8efvqfcykst\r\n• \e[1;37m45152\e[0m sats in bc1ql4hjt3newq69a9ty9ymrpjwxex4msuk9jd6z7d8570zkh995v6cs576m62\r\n— \e[1;37m56307\e[0m sats total\r\n\r\n\e[1;33mEnter the fee rate (sats/byte)\e[0m\r\nYour transaction weighs 315 bytes. You can get suggestions in https://bitcoinfees.earn.com/#fees\r\n➜ "
+  - delay: 2500
+    content: '5'
+  - delay: 1000
+    content: "\r\n\r\n\e[1;4;37mSummary\e[0m\r\n  \e[1;37mAmount\e[0m: 54732 sats\r\n  \e[1;37mFee\e[0m: 1575 sats\r\n  \e[1;37mDestination\e[0m: bc1qepja3llne3xp27car3gvvy7kzg7nfsacqvfe5l5jx4fa2f2v3wlskh9le7\r\n\r\n\e[1;33mConfirm?\e[0m (y/n)\r\n➜ "
+  - delay: 2500
+    content: 'y'
+  - delay: 1200
+    content: "\r\n\r\nSending transaction..."
+  - delay: 2000
+    content: "\r\n\nTransaction sent! You can check the status here:\r\n\e[4mhttps://blockstream.info/tx/7316aae315f2c6280a4a0199ea233f84d2d5af12f0d2588b92cbcc8c0e441da3\e[0m\r\n(it will appear in Blockstream after a short delay)\r\n\r\nWe appreciate all kinds of feedback. If you have any, send it to \e[1;34mcontact@muun.com\e[0m\r\n"
+  - delay: 6000
+    content: "\r"

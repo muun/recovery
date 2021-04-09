@@ -4,6 +4,8 @@ Welcome!
 
 You can use this tool to transfer all funds from your Muun wallet to an address of your choosing.
 
+![](readme/demo.gif)
+
 **This process requires no collaboration from Muun to work**. We wholeheartedly believe that self-custodianship
 is an essential right, and we want to create a world in which people have complete and exclusive
 control over their own money. Bitcoin has finally made this possible.
