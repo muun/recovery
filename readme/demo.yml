@@ -3,6 +3,9 @@
 # Render with:
 # $ terminalizer render demo.yml -o demo-unoptimized.gif
 
+# Make background transparent with:
+# https://onlinegiftools.com/create-transparent-gif (use white, 1%)
+
 # Optimize with:
 # $ gifsicle --optimize=3 --colors=32 -i demo-unoptimized.gif -o demo.gif
 
@@ -24,6 +27,7 @@ config:
     title: null
     style:
       border: 0px black solid
+      boxShadow: none
 
   watermark:
     imagePath: null
