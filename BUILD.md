@@ -1,4 +1,4 @@
-# Building and Auditing
+## Building for Use
 
 To build the tool locally and run it, you must:
 
@@ -16,7 +16,12 @@ To build the tool locally and run it, you must:
     go run -mod=vendor . -- <path to your Emergency Kit PDF>
     ```
 
-To build the tool in all its variants and verify the checksums for the provided binaries, you need to:
+This will take some time, as all dependencies must be compiled.
+
+## Reproducible Building for Verification
+
+Our builds can be reproduced using Docker. To build all variants and verify the checksums for 
+the binaries we provide, you need to:
 
 1. Install the [Docker](https://www.docker.com/) toolchain and start the daemon.
 2. Run this command:

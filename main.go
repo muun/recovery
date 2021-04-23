@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcutil"
-	"github.com/logrusorgru/aurora"
+	"github.com/gookit/color"
 	"github.com/muun/libwallet"
 	"github.com/muun/libwallet/emergencykit"
 	"github.com/muun/recovery/scanner"
@@ -416,21 +416,19 @@ func sayBlock(message string, v ...interface{}) {
 }
 
 func applyColor(colorName string, text string) string {
-	boldText := aurora.Bold(text) // in most terminals, bold colors are prettier and highlight better
-
 	switch colorName {
 	case "red":
-		return aurora.Red(boldText).String()
+		return color.New(color.FgRed, color.BgDefault, color.OpBold).Sprint(text)
 	case "blue":
-		return aurora.Blue(boldText).String()
+		return color.New(color.FgBlue, color.BgDefault, color.OpBold).Sprint(text)
 	case "yellow":
-		return aurora.Yellow(boldText).String()
+		return color.New(color.FgYellow, color.BgDefault, color.OpBold).Sprint(text)
 	case "green":
-		return aurora.Green(boldText).String()
+		return color.New(color.FgGreen, color.BgDefault, color.OpBold).Sprint(text)
 	case "white":
-		return aurora.White(boldText).String()
+		return color.New(color.FgWhite, color.BgDefault, color.OpBold).Sprint(text)
 	case "whiteUnderline":
-		return aurora.Underline(boldText).White().String()
+		return color.New(color.FgWhite, color.BgDefault, color.OpBold, color.OpUnderscore).Sprint(text)
 	}
 
 	panic("No such color: " + colorName)
