@@ -43,6 +43,12 @@ chmod +x recovery-tool-macos64
 
 If you attempt to open the file directly, MacOS will block you from using it.
 
+#### Security Warnings
+
+MacOS may prevent you from running the downloaded tool, depending on the active security settings. If it
+does, head to System Preferences, then Security and Privacy, and give permission for the tool to run at the
+bottom of the General tab.
+
 ### Linux
 
 Download the file to a known location (say `Downloads` in your Home directory), then open a terminal
