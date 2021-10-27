@@ -57,7 +57,7 @@ func (g *AddressGenerator) generateChangeAddrs() {
 	changeUserKey, _ := g.userKey.DeriveTo(changePath)
 	changeMuunKey, _ := g.muunKey.DeriveTo(changePath)
 
-	g.deriveTree(changeUserKey, changeMuunKey, 2000, "change")
+	g.deriveTree(changeUserKey, changeMuunKey, 2500, "change")
 }
 
 func (g *AddressGenerator) generateExternalAddrs() {
@@ -65,7 +65,7 @@ func (g *AddressGenerator) generateExternalAddrs() {
 	externalUserKey, _ := g.userKey.DeriveTo(externalPath)
 	externalMuunKey, _ := g.muunKey.DeriveTo(externalPath)
 
-	g.deriveTree(externalUserKey, externalMuunKey, 2000, "external")
+	g.deriveTree(externalUserKey, externalMuunKey, 2500, "external")
 }
 
 func (g *AddressGenerator) generateContactAddrs(numContacts int64) {
