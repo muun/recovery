@@ -39,7 +39,7 @@ func validateEntry(xRefTable *pdf.XRefTable, d pdf.Dict, dictName, entryName str
 	o, found := d.Find(entryName)
 	if !found || o == nil {
 		if required {
-			return nil, errors.Errorf("dict=%s required entry=%s missing.", dictName, entryName)
+			return nil, errors.Errorf("dict=%s required entry=%s missing (obj#%d).", dictName, entryName, xRefTable.CurObj)
 		}
 		return nil, nil
 	}
@@ -51,13 +51,13 @@ func validateEntry(xRefTable *pdf.XRefTable, d pdf.Dict, dictName, entryName str
 
 	if o == nil {
 		if required {
-			return nil, errors.Errorf("dict=%s required entry=%s missing.", dictName, entryName)
+			return nil, errors.Errorf("dict=%s required entry=%s missing (obj#%d).", dictName, entryName, xRefTable.CurObj)
 		}
 		return nil, nil
 	}
 
 	// Version check
-	err = xRefTable.ValidateVersion(fmt.Sprintf("dict=%s entry=%s", dictName, entryName), sinceVersion)
+	err = xRefTable.ValidateVersion(fmt.Sprintf("dict=%s entry=%s (obj#%d)", dictName, entryName, xRefTable.CurObj), sinceVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -181,16 +181,17 @@ func validateBooleanArrayEntry(xRefTable *pdf.XRefTable, d pdf.Dict, dictName, e
 }
 
 func validateDateObject(xRefTable *pdf.XRefTable, o pdf.Object, sinceVersion pdf.Version) (string, error) {
-	sl, err := xRefTable.DereferenceStringLiteral(o, sinceVersion, nil)
+	s, err := xRefTable.DereferenceStringOrHexLiteral(o, sinceVersion, nil)
+	//sl, err := xRefTable.DereferenceStringLiteral(o, sinceVersion, nil)
 	if err != nil {
 		return "", err
 	}
-	s := sl.Value()
+	//s := sl.Value()
 	if s == "" {
 		return s, nil
 	}
 
-	if _, ok := pdf.DateTime(s); !ok {
+	if _, ok := pdf.DateTime(s, xRefTable.ValidationMode == pdf.ValidationRelaxed); !ok {
 		return "", errors.Errorf("pdfcpu: validateDateObject: <%s> invalid date", s)
 	}
 
@@ -218,7 +219,7 @@ func validateDateEntry(xRefTable *pdf.XRefTable, d pdf.Dict, dictName, entryName
 		return nil, nil
 	}
 
-	time, ok := pdf.DateTime(s)
+	time, ok := pdf.DateTime(s, xRefTable.ValidationMode == pdf.ValidationRelaxed)
 	if !ok {
 		return nil, errors.Errorf("pdfcpu: validateDateEntry: <%s> invalid date", s)
 	}

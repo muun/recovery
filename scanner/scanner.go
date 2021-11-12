@@ -9,7 +9,7 @@ import (
 	"github.com/muun/recovery/utils"
 )
 
-const electrumPoolSize = 3
+const electrumPoolSize = 6
 const taskTimeout = 2 * time.Minute
 const batchSize = 100
 
@@ -35,7 +35,7 @@ const batchSize = 100
 // Electrum servers.
 type Scanner struct {
 	pool    *electrum.Pool
-	servers *ServerProvider
+	servers *electrum.ServerProvider
 	log     *utils.Logger
 }
 
@@ -58,10 +58,11 @@ type Utxo struct {
 // scanContext contains the synchronization objects for a single Scanner round, to manage Tasks.
 type scanContext struct {
 	// Task management:
-	addresses chan libwallet.MuunAddress
-	results   chan *scanTaskResult
-	done      chan struct{}
-	wg        *sync.WaitGroup
+	addresses   chan libwallet.MuunAddress
+	results     chan *scanTaskResult
+	stopScan    chan struct{}
+	stopCollect chan struct{}
+	wg          *sync.WaitGroup
 
 	// Progress reporting:
 	reports     chan *Report
@@ -72,7 +73,7 @@ type scanContext struct {
 func NewScanner() *Scanner {
 	return &Scanner{
 		pool:    electrum.NewPool(electrumPoolSize),
-		servers: NewServerProvider(),
+		servers: electrum.NewServerProvider(),
 		log:     utils.NewLogger("Scanner"),
 	}
 }
@@ -83,10 +84,11 @@ func (s *Scanner) Scan(addresses chan libwallet.MuunAddress) <-chan *Report {
 
 	// Create the Context that goroutines will share:
 	ctx := &scanContext{
-		addresses: addresses,
-		results:   make(chan *scanTaskResult),
-		done:      make(chan struct{}),
-		wg:        &waitGroup,
+		addresses:   addresses,
+		results:     make(chan *scanTaskResult),
+		stopScan:    make(chan struct{}),
+		stopCollect: make(chan struct{}),
+		wg:          &waitGroup,
 
 		reports: make(chan *Report),
 		reportCache: &Report{
@@ -107,6 +109,8 @@ func (s *Scanner) startCollect(ctx *scanContext) {
 	for {
 		select {
 		case result := <-ctx.results:
+			s.log.Printf("Scanned %d, found %d (err %v)", len(result.Task.addresses), len(result.Utxos), result.Err)
+
 			newReport := *ctx.reportCache // create a new private copy
 			ctx.reportCache = &newReport
 
@@ -114,8 +118,8 @@ func (s *Scanner) startCollect(ctx *scanContext) {
 				ctx.reportCache.Err = s.log.Errorf("Scan failed: %w", result.Err)
 				ctx.reports <- ctx.reportCache
 
-				close(ctx.done)    // failed after several retries, we give up and terminate all tasks
-				close(ctx.reports) // close the report channel to let callers know we're done
+				close(ctx.stopScan) // failed after several retries, we give up and terminate all tasks
+				close(ctx.reports)  // close the report channel to let callers know we're done
 				return
 			}
 
@@ -123,7 +127,7 @@ func (s *Scanner) startCollect(ctx *scanContext) {
 			ctx.reportCache.UtxosFound = append(ctx.reportCache.UtxosFound, result.Utxos...)
 			ctx.reports <- ctx.reportCache
 
-		case <-ctx.done:
+		case <-ctx.stopCollect:
 			close(ctx.reports) // close the report channel to let callers know we're done
 			return
 		}
@@ -140,7 +144,7 @@ func (s *Scanner) startScan(ctx *scanContext) {
 	for batch := range batches {
 		// Stop the loop until a client becomes available, or the scan is canceled:
 		select {
-		case <-ctx.done:
+		case <-ctx.stopScan:
 			return
 
 		case client = <-s.pool.Acquire():
@@ -161,8 +165,8 @@ func (s *Scanner) startScan(ctx *scanContext) {
 	ctx.wg.Wait()
 	s.log.Printf("Scan complete")
 
-	// Signal to the Scanner that this Context has no more pending work:
-	close(ctx.done)
+	// Signal to the collector that this Context has no more pending work:
+	close(ctx.stopCollect)
 }
 
 func (s *Scanner) scanBatch(ctx *scanContext, client *electrum.Client, batch []libwallet.MuunAddress) {
@@ -176,7 +180,7 @@ func (s *Scanner) scanBatch(ctx *scanContext, client *electrum.Client, batch []l
 		client:    client,
 		addresses: batch,
 		timeout:   taskTimeout,
-		exit:      ctx.done,
+		exit:      ctx.stopCollect,
 	}
 
 	// Do the thing and send back the result:

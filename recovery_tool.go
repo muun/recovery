@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 
 	"github.com/muun/libwallet"
+	"github.com/muun/libwallet/btcsuitew/txscriptw"
 	"github.com/muun/recovery/scanner"
 )
 
@@ -35,7 +35,7 @@ func buildSweepTx(utxos []*scanner.Utxo, sweepAddress btcutil.Address, fee int64
 
 	value -= fee
 
-	script, err := txscript.PayToAddrScript(sweepAddress)
+	script, err := txscriptw.PayToAddrScript(sweepAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,8 @@ func buildSignedTx(utxos []*scanner.Utxo, sweepTx []byte, userKey *libwallet.HDP
 		})
 	}
 
-	pstx, err := libwallet.NewPartiallySignedTransaction(inputList, sweepTx)
+	nonces := libwallet.GenerateMusigNonces(len(utxos))
+	pstx, err := libwallet.NewPartiallySignedTransaction(inputList, sweepTx, nonces)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +112,12 @@ func (i *input) SubmarineSwapV2() libwallet.InputSubmarineSwapV2 {
 }
 
 func (i *input) IncomingSwap() libwallet.InputIncomingSwap {
+	return nil
+}
+
+func (i *input) MuunPublicNonce() []byte {
+	// Will always be nil in the context of the tool
+	// Look at coinV5.signFirstWith for the reason why.
 	return nil
 }
 

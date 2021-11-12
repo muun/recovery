@@ -18,11 +18,11 @@ and follow the instructions below.
 
 | System | Checksum | Link |
 | --- | --- | --- |
-| Linux 32-bit | `9dd403807dc7bcec0d38ff4168b66c468b1ad71e80c55eebfb0affb159e68549` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux32) |
-| Linux 64-bit | `4d583fa4220c91409a3bb96ec3c72b9b4914bbe38f1a2e26fda234d498c0de04` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux64) |
-| Windows 32-bit | `ce1631bbab868b2089455be93604ebb81e3f19b52cdaed439086f44e2df01682` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows32.exe) |
-| Windows 64-bit | `10be8600e7fa524e35ec1e00ce516f598462520a688c243c84ae5b696ba57ee9` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows64.exe) |
-| MacOS 64-bit | `1336c6814b6f040a027a593e437e1665c233ed6af9d5d3ab5b5323efe233cf05` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-macos64) |
+| Linux 32-bit | `7b6de37a2c05635ddeaa77654805e6a94e7a596d4de7b54e3906d1dfe881f0de` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux32) |
+| Linux 64-bit | `dd298ce92e05660363959ee1e5a1af5fa7f111957764623b8a187e07b1c86159` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux64) |
+| Windows 32-bit | `2388bf2d6d024c81fc99245ed79cfd2edb3118ad926d07129c8d3fadebe44f91` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows32.exe) |
+| Windows 64-bit | `6050d6226b26516365206e012acd1e6edc0365b29d4c585e0fc8968a7fcd06b6` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows64.exe) |
+| MacOS 64-bit | `b842569fb380aa64a3ba5696f097f0512c2c4c8a8ea5da0ef9128eea80404af8` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-macos64) |
 
 ### Windows
 
@@ -40,8 +40,6 @@ cd ~/Downloads
 chmod +x recovery-tool-macos64
 ./recovery-tool-macos64 <path to your Emergency Kit PDF>
 ```
-
-If you attempt to open the file directly, MacOS will block you from using it.
 
 #### Security Warnings
 

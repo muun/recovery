@@ -55,10 +55,28 @@ type ServerVersionResponse struct {
 	Result []string `json:"result"`
 }
 
+// ServerFeaturesResponse models the structure of a `server.features` response.
+type ServerFeaturesResponse struct {
+	ID     int            `json:"id"`
+	Result ServerFeatures `json:"result"`
+}
+
+// ServerPeersResponse models the structure (or lack thereof) of a `server.peers.subscribe` response
+type ServerPeersResponse struct {
+	ID     int           `json:"id"`
+	Result []interface{} `json:"result"`
+}
+
 // ListUnspentResponse models a `blockchain.scripthash.listunspent` response.
 type ListUnspentResponse struct {
 	ID     int          `json:"id"`
 	Result []UnspentRef `json:"result"`
+}
+
+// GetTransactionResponse models the structure of a `blockchain.transaction.get` response.
+type GetTransactionResponse struct {
+	ID     int    `json:"id"`
+	Result string `json:"result"`
 }
 
 // BroadcastResponse models the structure of a `blockchain.transaction.broadcast` response.
@@ -73,6 +91,17 @@ type UnspentRef struct {
 	TxPos  int    `json:"tx_pos"`
 	Value  int64  `json:"value"`
 	Height int    `json:"height"`
+}
+
+// ServerFeatures contains the relevant information from `ServerFeatures` results.
+type ServerFeatures struct {
+	ID            int    `json:"id"`
+	GenesisHash   string `json:"genesis_hash"`
+	HashFunction  string `json:"hash_function"`
+	ServerVersion string `json:"server_version"`
+	ProcotolMin   string `json:"protocol_min"`
+	ProtocolMax   string `json:"protocol_max"`
+	Pruning       int    `json:"pruning"`
 }
 
 // Param is a convenience type that models an item in the `Params` array of an Request.
@@ -157,6 +186,62 @@ func (c *Client) ServerVersion() ([]string, error) {
 	return response.Result, nil
 }
 
+// ServerFeatures calls the `server.features` method and returns the relevant part of the result.
+func (c *Client) ServerFeatures() (*ServerFeatures, error) {
+	request := Request{
+		Method: "server.features",
+		Params: []Param{},
+	}
+
+	var response ServerFeaturesResponse
+
+	err := c.call(&request, &response)
+	if err != nil {
+		return nil, c.log.Errorf("ServerFeatures failed: %w", err)
+	}
+
+	return &response.Result, nil
+}
+
+// ServerPeers calls the `server.peers.subscribe` method and returns a list of server addresses.
+func (c *Client) ServerPeers() ([]string, error) {
+	res, err := c.rawServerPeers()
+	if err != nil {
+		return nil, err // note that, besides I/O errors, some servers close the socket on this request
+	}
+
+	var peers []string
+
+	for _, entry := range res {
+		// Get ready for some hot casting action. Not for the faint of heart.
+		addr := entry.([]interface{})[1].(string)
+		port := entry.([]interface{})[2].([]interface{})[1].(string)[1:]
+
+		peers = append(peers, addr+":"+port)
+	}
+
+	return peers, nil
+}
+
+// rawServerPeers calls the `server.peers.subscribe` method and returns this monstrosity:
+// 		[ "<ip>", "<domain>", ["<version>", "s<SSL port>", "t<TLS port>"] ]
+// Ports can be in any order, or absent if the protocol is not supported
+func (c *Client) rawServerPeers() ([]interface{}, error) {
+	request := Request{
+		Method: "server.peers.subscribe",
+		Params: []Param{},
+	}
+
+	var response ServerPeersResponse
+
+	err := c.call(&request, &response)
+	if err != nil {
+		return nil, c.log.Errorf("rawServerPeers failed: %w", err)
+	}
+
+	return response.Result, nil
+}
+
 // Broadcast calls the `blockchain.transaction.broadcast` endpoint and returns the transaction hash.
 func (c *Client) Broadcast(rawTx string) (string, error) {
 	request := Request{
@@ -169,6 +254,23 @@ func (c *Client) Broadcast(rawTx string) (string, error) {
 	err := c.call(&request, &response)
 	if err != nil {
 		return "", c.log.Errorf("Broadcast failed: %w", err)
+	}
+
+	return response.Result, nil
+}
+
+// GetTransaction calls the `blockchain.transaction.get` endpoint and returns the transaction hex.
+func (c *Client) GetTransaction(txID string) (string, error) {
+	request := Request{
+		Method: "blockchain.transaction.get",
+		Params: []Param{txID},
+	}
+
+	var response GetTransactionResponse
+
+	err := c.call(&request, &response)
+	if err != nil {
+		return "", c.log.Errorf("GetTransaction failed: %w", err)
 	}
 
 	return response.Result, nil

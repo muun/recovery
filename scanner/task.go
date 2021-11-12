@@ -5,15 +5,15 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcutil"
 	"github.com/muun/libwallet"
+	"github.com/muun/libwallet/btcsuitew/btcutilw"
+	"github.com/muun/libwallet/btcsuitew/txscriptw"
 	"github.com/muun/recovery/electrum"
 )
 
 // scanTask encapsulates a parallelizable Scanner unit of work.
 type scanTask struct {
-	servers   *ServerProvider
+	servers   *electrum.ServerProvider
 	client    *electrum.Client
 	addresses []libwallet.MuunAddress
 	timeout   time.Duration
@@ -180,12 +180,12 @@ func getOutputScripts(addresses []libwallet.MuunAddress) ([][]byte, error) {
 	for i, address := range addresses {
 		rawAddress := address.Address()
 
-		decodedAddress, err := btcutil.DecodeAddress(rawAddress, &chaincfg.MainNetParams)
+		decodedAddress, err := btcutilw.DecodeAddress(rawAddress, &chaincfg.MainNetParams)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to decode address %s: %w", rawAddress, err)
 		}
 
-		outputScript, err := txscript.PayToAddrScript(decodedAddress)
+		outputScript, err := txscriptw.PayToAddrScript(decodedAddress)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to craft script for %s: %w", rawAddress, err)
 		}

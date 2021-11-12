@@ -9,15 +9,20 @@ import (
 	"strings"
 
 	"github.com/muun/libwallet/addresses"
+	"github.com/muun/libwallet/btcsuitew/btcutilw"
 	"github.com/muun/libwallet/errors"
 
 	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcutil"
 	"google.golang.org/protobuf/proto"
 )
 
 // These constants are here for clients usage.
 const (
+	AddressVersionV1      = addresses.V1
+	AddressVersionV2      = addresses.V2
+	AddressVersionV3      = addresses.V3
+	AddressVersionV4      = addresses.V4
+	AddressVersionV5      = addresses.V5
 	AddressVersionSwapsV1 = addresses.SubmarineSwapV1
 	AddressVersionSwapsV2 = addresses.SubmarineSwapV2
 )
@@ -52,12 +57,12 @@ func GetPaymentURI(rawInput string, network *Network) (*MuunPaymentURI, error) {
 		return nil, errors.New(ErrInvalidURI, "Invalid scheme")
 	}
 
-	base58Address := components.Opaque
+	address := components.Opaque
 
 	// When URIs are bitcoin:// the address comes in host
 	// this happens in iOS that mostly ignores bitcoin: format
-	if len(base58Address) == 0 {
-		base58Address = components.Host
+	if len(address) == 0 {
+		address = components.Host
 	}
 
 	queryValues, err := url.ParseQuery(components.RawQuery)
@@ -89,9 +94,9 @@ func GetPaymentURI(rawInput string, network *Network) (*MuunPaymentURI, error) {
 
 	//BIP70 check
 	if len(queryValues["r"]) != 0 {
-		if len(base58Address) > 0 {
+		if len(address) > 0 {
 			return &MuunPaymentURI{
-				Address:  base58Address,
+				Address:  address,
 				Label:    label,
 				Message:  message,
 				Amount:   amount,
@@ -109,17 +114,17 @@ func GetPaymentURI(rawInput string, network *Network) (*MuunPaymentURI, error) {
 	}
 
 	// Bech32 check
-	validatedBase58Address, err := btcutil.DecodeAddress(base58Address, network.network)
+	decodedAddress, err := btcutilw.DecodeAddress(address, network.network)
 	if err != nil {
 		return nil, fmt.Errorf("invalid address: %w", err)
 	}
 
-	if !validatedBase58Address.IsForNet(network.network) {
+	if !decodedAddress.IsForNet(network.network) {
 		return nil, errors.New(ErrInvalidURI, "Network mismatch")
 	}
 
 	return &MuunPaymentURI{
-		Address: validatedBase58Address.String(),
+		Address: decodedAddress.String(),
 		Label:   label,
 		Message: message,
 		Amount:  amount,

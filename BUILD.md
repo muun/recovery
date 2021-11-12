@@ -34,3 +34,10 @@ the binaries we provide, you need to:
 as in the `Makefile`.
 
 We use Docker for these builds to ensure they are reproducible.
+
+### Note on MacOS
+
+For the 2.2 release, we had to disable reproducible builds for MacOS. The inclusion of C code for 
+the musig implementation made building the tool inside a Linux container extremely difficult. We'll 
+be moving the process to GitHub actions soon, which can be easily audited and can build natively on 
+MacOS.

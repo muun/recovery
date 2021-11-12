@@ -1,4 +1,4 @@
-package scanner
+package electrum
 
 import "sync/atomic"
 
@@ -15,19 +15,20 @@ func NewServerProvider() *ServerProvider {
 // NextServer returns an address from the rotating list. It's thread-safe.
 func (p *ServerProvider) NextServer() string {
 	index := int(atomic.AddInt32(&p.nextIndex, 1))
-	return PublicElectrumServers[index%len(PublicElectrumServers)]
+	return PublicServers[index%len(PublicServers)]
 }
 
-// PublicElectrumServers list.
+// PublicServers list.
 //
-// This list was taken from the `electrum` repository, keeping TLS servers and excluding onion URIs.
+// This list was taken from Electrum repositories, keeping TLS servers and excluding onion URIs.
 // It was then sorted into sections using the `cmd/survey` program, to prioritize the more reliable
 // servers with batch support.
 //
 // See https://github.com/spesmilo/electrum/blob/master/electrum/servers.json
+// See https://github.com/kyuupichan/electrumx/blob/master/electrumx/lib/coins.py
 // See `cmd/survey/main.go`
 //
-var PublicElectrumServers = []string{
+var PublicServers = []string{
 	// With batch support:
 	"electrum.hsmiths.com:50002",
 	"E-X.not.fyi:50002",

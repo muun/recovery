@@ -52,7 +52,7 @@ func NewContext(rs io.ReadSeeker, conf *Configuration) (*Context, error) {
 
 	ctx := &Context{
 		conf,
-		newXRefTable(conf.ValidationMode),
+		newXRefTable(conf.ValidationMode, conf.ValidateLinks),
 		rdCtx,
 		newOptimizationContext(),
 		NewWriteContext(conf.Eol),
@@ -130,7 +130,7 @@ func (ctx *Context) String() string {
 		logStr = append(logStr, fmt.Sprintf("        AdditionalStreams: %s\n\n", strings.Join(objectNumbers, ",")))
 	}
 
-	logStr = append(logStr, fmt.Sprintf("XRefTable with %d entres:\n", len(ctx.Table)))
+	logStr = append(logStr, fmt.Sprintf("XRefTable with %d entries:\n", len(ctx.Table)))
 
 	// Print sorted object list.
 	logStr = ctx.list(logStr)

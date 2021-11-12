@@ -4,28 +4,54 @@
 # You need to pass 3 parameters via --build-arg:
 # 1. `os`  : the GOOS env var -- `linux`, `windows` or `darwin`.
 # 2. `arch`: the GOARCH env var -- `386` or `amd64` (note that darwin/386 is not a thing).
-# 3. `out` : the name of the resulting executable, placed in the output directory on the host.
+# 3. `cc`  : the CC env var -- a C compiler for CGO to use, empty to use the default.
+# 4. `out` : the name of the resulting executable, placed in the output directory on the host.
 
 # For example, to build a linux/386 binary into `bin/rt`:
 #   docker build . --output bin --build-arg os=linux --build-arg arch=386 --build-arg out=rt
 
 # Note that the --output <dir> flag refers to the host, outside the container.
 
-FROM golang:1.16.0-alpine3.13 AS build
-ARG os
-ARG arch
+# --------------------------------------------------------------------------------------------------
 
-RUN apk add --no-cache build-base=0.5-r2
+FROM ubuntu:20.04 AS rtool-build-base
 
+# Avoid prompts during package installation:
+ENV DEBIAN_FRONTEND="noninteractive"
+
+# Upgrade indices:
+RUN apt-get update
+
+# Install the various compilers we're going to use, with specific versions:
+RUN apt-get install -y \
+  golang-1.16-go=1.16.2-0ubuntu1~20.04 \
+  gcc-mingw-w64=9.3.0-7ubuntu1+22~exp1ubuntu4 \
+  gcc-multilib=4:9.3.0-1ubuntu2
+
+# Copy the source code into the container:
 WORKDIR /src
 COPY . .
 
-ENV CGO_ENABLED=0
-RUN env GOOS=${os} GOARCH=${arch} go build -mod=vendor -a -trimpath -o /out .
+RUN /bin/bash
 
-# ---
+# --------------------------------------------------------------------------------------------------
+
+FROM rtool-build-base AS rtool-build
+ARG os
+ARG arch
+ARG cc
+
+# Enable and configure C support:
+ENV CGO_ENABLED=1
+ENV GO386=softfloat
+
+# Do the thing:
+RUN env GOOS=${os} GOARCH=${arch} CC=${cc} /usr/lib/go-1.16/bin/go build -mod=vendor -a -trimpath -o /out .
+
+# --------------------------------------------------------------------------------------------------
 
 FROM scratch
 ARG out
 
-COPY --from=build /out ${out}
+# Copy the resulting executable back to the host:
+COPY --from=rtool-build /out ${out}

@@ -122,5 +122,13 @@ func (g *AddressGenerator) deriveTree(rootUserKey, rootMuunKey *libwallet.HDPriv
 			log.Printf("failed to generate %v v4 for %v due to %v", name, i, err)
 		}
 
+		addrV5, err := libwallet.CreateAddressV5(userKey.PublicKey(), muunKey.PublicKey())
+		if err == nil {
+			g.addrs[addrV5.Address()] = signingDetails{
+				Address: addrV5,
+			}
+		} else {
+			log.Printf("failed to generate %v v5 for %v due to %v", name, i, err)
+		}
 	}
 }

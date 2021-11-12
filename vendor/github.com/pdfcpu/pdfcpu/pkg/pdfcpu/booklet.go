@@ -31,6 +31,8 @@ func DefaultBookletConfig() *NUp {
 	nup.Margin = 0
 	nup.Border = false
 	nup.BookletGuides = false
+	nup.MultiFolio = false
+	nup.FolioSize = 8
 	return nup
 }
 
@@ -81,7 +83,7 @@ func drawGuideLineLabel(w io.Writer, x, y float64, s string, mb *Rectangle, fm F
 	WriteMultiLine(w, mb, nil, td)
 }
 
-func drawScissor(w io.Writer, mb *Rectangle, fm FontMap) {
+func drawScissors(w io.Writer, mb *Rectangle, fm FontMap) {
 	fontName := "ZapfDingbats"
 	td := TextDescriptor{
 		FontName:  fontName,
@@ -125,7 +127,7 @@ func drawBookletGuides(nup *NUp, w io.Writer) FontMap {
 		drawGuideLineLabel(w, width, height/2+2, "Fold & Cut here", mb, fm, 0)
 
 		// Draw scissors over cutting line.
-		drawScissor(w, mb, fm)
+		drawScissors(w, mb, fm)
 	}
 
 	return fm
@@ -330,8 +332,27 @@ func (ctx *Context) BookletFromPDF(selectedPages IntSet, nup *NUp) error {
 
 	nup.PageDim = &Dim{mb.Width(), mb.Height()}
 
-	if err = ctx.bookletPages(selectedPages, nup, pagesDict, pagesIndRef); err != nil {
-		return err
+	if nup.MultiFolio {
+		pages := IntSet{}
+		for _, i := range sortSelectedPages(selectedPages) {
+			pages[i] = true
+			if len(pages) == 4*nup.FolioSize {
+				if err = ctx.bookletPages(pages, nup, pagesDict, pagesIndRef); err != nil {
+					return err
+				}
+				pages = IntSet{}
+			}
+		}
+		if len(pages) > 0 {
+			if err = ctx.bookletPages(pages, nup, pagesDict, pagesIndRef); err != nil {
+				return err
+			}
+		}
+
+	} else {
+		if err = ctx.bookletPages(selectedPages, nup, pagesDict, pagesIndRef); err != nil {
+			return err
+		}
 	}
 
 	// Replace original pagesDict.
@@ -390,7 +411,7 @@ func BookletFromImages(ctx *Context, fileNames []string, nup *NUp, pagesDict Dic
 			return err
 		}
 
-		imgIndRef, w, h, err := createImageResource(xRefTable, f)
+		imgIndRef, w, h, err := createImageResource(xRefTable, f, false, false)
 		if err != nil {
 			return err
 		}

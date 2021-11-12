@@ -347,6 +347,10 @@ func parseObjectStream(osd *ObjectStreamDict) error {
 	decodedContent := osd.Content
 	prolog := decodedContent[:osd.FirstObjOffset]
 
+	// The separator used in the prolog shall be white space
+	// but some PDF writers use 0x00.
+	prolog = bytes.ReplaceAll(prolog, []byte{0x00}, []byte{0x20})
+
 	objs := strings.Fields(string(prolog))
 	if len(objs)%2 > 0 {
 		return errors.New("pdfcpu: parseObjectStream: corrupt object stream dict")
@@ -428,7 +432,7 @@ func extractXRefTableEntriesFromXRefStream(buf []byte, xsd *XRefStreamDict, ctx 
 	log.Read.Printf("extractXRefTableEntriesFromXRefStream: len(buf):%d objCount*xrefEntryLen:%d\n", len(buf), objCount*xrefEntryLen)
 	if len(buf) < objCount*xrefEntryLen {
 		// Sometimes there is an additional xref entry not accounted for by "Index".
-		// We ignore such a entries and do not treat this as an error.
+		// We ignore such entries and do not treat this as an error.
 		return errors.New("pdfcpu: extractXRefTableEntriesFromXRefStream: corrupt xrefstream")
 	}
 
@@ -604,22 +608,17 @@ func parseXRefStream(rd io.Reader, offset *int64, ctx *Context) (prevOffset *int
 		return nil, err
 	}
 
-	if ctx.XRefTable.Exists(*objectNumber) {
-		log.Read.Printf("parseXRefStream: Skip entry %d - already assigned\n", *objectNumber)
-	} else {
-		// Create xRefTableEntry for XRefStreamDict.
-		entry :=
-			XRefTableEntry{
-				Free:       false,
-				Offset:     offset,
-				Generation: generationNumber,
-				Object:     *sd}
+	entry :=
+		XRefTableEntry{
+			Free:       false,
+			Offset:     offset,
+			Generation: generationNumber,
+			Object:     *sd}
 
-		log.Read.Printf("parseXRefStream: Insert new xRefTable entry for Object %d\n", *objectNumber)
+	log.Read.Printf("parseXRefStream: Insert new xRefTable entry for Object %d\n", *objectNumber)
 
-		ctx.Table[*objectNumber] = &entry
-		ctx.Read.XRefStreams[*objectNumber] = true
-	}
+	ctx.Table[*objectNumber] = &entry
+	ctx.Read.XRefStreams[*objectNumber] = true
 	prevOffset = sd.PreviousOffset
 
 	log.Read.Println("parseXRefStream: end")
@@ -1276,10 +1275,8 @@ func readXRefTable(ctx *Context) (err error) {
 
 	// Ensure valid freelist of objects.
 	// Note: Acrobat 6.0 and later do not use the free list to recycle object numbers.
-	err = ctx.EnsureValidFreeList()
-	if err != nil {
-		return
-	}
+	// Not really necessary but call and fail silently so we at least get a chance to repair corrupt free lists.
+	ctx.EnsureValidFreeList()
 
 	log.Read.Println("readXRefTable: end")
 
@@ -1811,10 +1808,38 @@ func int64Object(ctx *Context, objectNumber int) (*int64, error) {
 
 }
 
-// Reads and returns a file buffer with length = stream length using provided reader positioned at offset.
-func readContentStream(rd io.Reader, streamLength int) ([]byte, error) {
+func readStreamContentBlindly(rd io.Reader) (buf []byte, err error) {
+	// Weak heuristic for reading in stream data for cases where stream length is unknown.
+	// ...data...{eol}endstream{eol}endobj
+	var i int
+	for i = -1; i < 0; i = bytes.Index(buf, []byte("endstream")) {
+		buf, err = growBufBy(buf, defaultBufSize, rd)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	log.Read.Printf("readContentStream: begin streamLength:%d\n", streamLength)
+	buf = buf[:i]
+
+	j := 0
+
+	// Cut off trailing eol's.
+	for i = len(buf) - 1; i >= 0 && (buf[i] == 0x0A || buf[i] == 0x0D); i-- {
+		j++
+	}
+
+	return buf[:i+1], nil
+}
+
+// Reads and returns a file buffer with length = stream length using provided reader positioned at offset.
+func readStreamContent(rd io.Reader, streamLength int) ([]byte, error) {
+
+	log.Read.Printf("readStreamContent: begin streamLength:%d\n", streamLength)
+
+	// If streamLength == 0 read until "endstream" then fix "Length"
+	if streamLength == 0 {
+		return readStreamContentBlindly(rd)
+	}
 
 	buf := make([]byte, streamLength)
 
@@ -1833,12 +1858,12 @@ func readContentStream(rd io.Reader, streamLength int) ([]byte, error) {
 			return buf[:eob], nil
 		}
 
-		log.Read.Printf("readContentStream: count=%d, buflen=%d(%X)\n", count, len(buf), len(buf))
+		log.Read.Printf("readStreamContent: count=%d, buflen=%d(%X)\n", count, len(buf), len(buf))
 		totalCount += count
 
 	}
 
-	log.Read.Printf("readContentStream: end\n")
+	log.Read.Printf("readStreamContent: end\n")
 
 	return buf, nil
 }
@@ -1881,14 +1906,14 @@ func loadEncodedStreamContent(ctx *Context, sd *StreamDict) ([]byte, error) {
 
 	// Buffer stream contents.
 	// Read content from disk.
-	rawContent, err := readContentStream(rd, int(*sd.StreamLength))
+	rawContent, err := readStreamContent(rd, int(*sd.StreamLength))
 	if err != nil {
 		return nil, err
 	}
 
 	// Sometimes the stream dict length is corrupt and needs to be fixed.
 	l := int64(len(rawContent))
-	if l < *sd.StreamLength {
+	if *sd.StreamLength == 0 || l < *sd.StreamLength {
 		sd.StreamLength = &l
 		sd.Dict["Length"] = Integer(l)
 	}
@@ -1938,7 +1963,7 @@ func saveDecodedStreamContent(ctx *Context, sd *StreamDict, objNr, genNr int, de
 		return nil
 	}
 
-	// Actual decoding of content stream.
+	// Actual decoding of stream data.
 	err = sd.Decode()
 	if err == filter.ErrUnsupportedFilter {
 		err = nil
@@ -2223,7 +2248,7 @@ func dereferenceObject(ctx *Context, objNr int) error {
 
 	o := entry.Object
 
-	// Already dereferenced stream dict.
+	// Already dereferenced object.
 	if o != nil {
 		logStream(entry.Object)
 		updateBinaryTotalSize(ctx, o)

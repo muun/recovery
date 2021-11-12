@@ -2,50 +2,50 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/muun/recovery/electrum"
-	"github.com/muun/recovery/scanner"
+	"github.com/muun/recovery/survey"
 )
 
-var failedToConnect []string
-var withBatching []string
-var withoutBatching []string
-
 func main() {
-	client := electrum.NewClient()
-
-	for _, server := range scanner.PublicElectrumServers {
-		surveyServer(client, server)
+	config := &survey.Config{
+		InitialServers:     electrum.PublicServers,
+		Workers:            30,
+		SpeedTestDuration:  time.Second * 20,
+		SpeedTestBatchSize: 100,
 	}
 
-	fmt.Println("// With batch support:")
-	for _, server := range withBatching {
-		fmt.Printf("\"%s\"\n", server)
+	survey := survey.NewSurvey(config)
+	results := survey.Run()
+
+	fmt.Println("\n\n// Worthy servers:")
+	for _, result := range results {
+		if result.IsWorthy {
+			fmt.Println(toCodeLine(result))
+		}
 	}
 
-	fmt.Println("// Without batch support:")
-	for _, server := range withoutBatching {
-		fmt.Printf("\"%s\"\n", server)
-	}
-
-	fmt.Println("// Unclassified:")
-	for _, server := range failedToConnect {
-		fmt.Printf("\"%s\"\n", server)
+	fmt.Println("\n\n// Unworthy servers:")
+	for _, result := range results {
+		if !result.IsWorthy {
+			fmt.Println(toCodeLine(result))
+		}
 	}
 }
 
-func surveyServer(client *electrum.Client, server string) {
-	fmt.Println("Surveyng", server)
-	err := client.Connect(server)
-
-	if err != nil {
-		failedToConnect = append(failedToConnect, server)
-		return
+func toCodeLine(r *survey.Result) string {
+	if r.Err != nil {
+		return fmt.Sprintf("\"%s\", // %v", r.Server, r.Err)
 	}
 
-	if client.SupportsBatching() {
-		withBatching = append(withBatching, server)
-	} else {
-		withoutBatching = append(withoutBatching, server)
-	}
+	return fmt.Sprintf(
+		"\"%s\", // impl: %s, batching: %v, ttc: %.2f, speed: %d, from: %s",
+		r.Server,
+		r.Impl,
+		r.BatchSupport,
+		r.TimeToConnect.Seconds(),
+		r.Speed,
+		r.FromPeer,
+	)
 }

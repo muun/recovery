@@ -21,7 +21,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/hhrutter/tiff"
@@ -632,10 +632,7 @@ func renderIndexed(xRefTable *XRefTable, im *PDFImage, resourceName string, cs A
 	return nil, nil
 }
 
-func renderFlateEncodedImage(xRefTable *XRefTable, io *ImageObject, objNr int) (*Image, error) {
-
-	sd := io.ImageDict
-	resourceName := io.ResourceNames[0]
+func renderFlateEncodedImage(xRefTable *XRefTable, sd *StreamDict, resourceName string, objNr int) (*Image, error) {
 
 	pdfImage, err := pdfImage(xRefTable, sd, objNr)
 	if err != nil {
@@ -689,115 +686,45 @@ func renderFlateEncodedImage(xRefTable *XRefTable, io *ImageObject, objNr int) (
 }
 
 // RenderImage returns a reader for the encoded image bytes.
-func RenderImage(xRefTable *XRefTable, io *ImageObject, objNr int) (*Image, error) {
-
-	sd := io.ImageDict
-	resourceName := io.ResourceNames[0]
+// for extract
+func RenderImage(xRefTable *XRefTable, sd *StreamDict, resourceName string, objNr int) (*Image, error) {
 
 	switch sd.FilterPipeline[0].Name {
 
 	case filter.Flate, filter.CCITTFax:
 		// If color space is CMYK then write .tif else write .png
-		return renderFlateEncodedImage(xRefTable, io, objNr)
+		return renderFlateEncodedImage(xRefTable, sd, resourceName, objNr)
 
 	case filter.DCT:
+		// Write original stream data.
 		return &Image{bytes.NewReader(sd.Raw), resourceName, "jpg"}, nil
 
 	case filter.JPX:
+		// Write original stream data.
 		return &Image{bytes.NewReader(sd.Raw), resourceName, "jpx"}, nil
 	}
 
 	return nil, nil
 }
 
-func renderCSByName(cs Name, pdfImage *PDFImage, filename string, objNr int) (*Image, error) {
-	switch cs {
-
-	case DeviceGrayCS:
-		return renderDeviceGrayToPNG(pdfImage, filename)
-
-	case DeviceRGBCS:
-		return renderDeviceRGBToPNG(pdfImage, filename)
-
-	case DeviceCMYKCS:
-		return renderDeviceCMYKToTIFF(pdfImage, filename)
-
-	default:
-		log.Info.Printf("renderCSByName: objNr=%d, unsupported name colorspace %s\n", objNr, cs)
-	}
-
-	return nil, nil
-}
-
-func renderCSByArray(xRefTable *XRefTable, cs Array, pdfImage *PDFImage, filename string, objNr int) (*Image, error) {
-	switch cs[0].(Name) {
-
-	case CalRGBCS:
-		return renderCalRGBToPNG(pdfImage, filename)
-
-	case ICCBasedCS:
-		return renderICCBased(xRefTable, pdfImage, filename, cs)
-
-	case IndexedCS:
-		return renderIndexed(xRefTable, pdfImage, filename, cs)
-
-	default:
-		log.Info.Printf("renderCSByArray: objNr=%d, unsupported array colorspace %s\n", objNr, cs)
-	}
-
-	return nil, nil
-}
-
-func writeFlateEncodedImage(xRefTable *XRefTable, filename string, sd *StreamDict, objNr int) (string, error) {
-
-	pdfImage, err := pdfImage(xRefTable, sd, objNr)
-	if err != nil {
-		return "", err
-	}
-
-	o, err := xRefTable.DereferenceDictEntry(sd.Dict, "ColorSpace")
-	if err != nil {
-		return "", err
-	}
-
-	var img *Image
-
-	switch cs := o.(type) {
-	case Name:
-		img, err = renderCSByName(cs, pdfImage, filename, objNr)
-	case Array:
-		img, err = renderCSByArray(xRefTable, cs, pdfImage, filename, objNr)
-	}
-
-	if err != nil || img == nil {
-		return "", err
-	}
-
-	bb, err := ioutil.ReadAll(img)
-	if err != nil {
-		return "", err
-	}
-
-	if err := ioutil.WriteFile(filename, bb, os.ModePerm); err != nil {
-		return "", err
-	}
-
-	return filename, nil
-}
-
 // WriteImage writes a PDF image object to disk.
-func WriteImage(xRefTable *XRefTable, filename string, sd *StreamDict, objNr int) (string, error) {
-	switch sd.FilterPipeline[0].Name {
+func WriteImage(xRefTable *XRefTable, fileName string, sd *StreamDict, objNr int) (string, error) {
 
-	case filter.Flate, filter.CCITTFax:
-		return writeFlateEncodedImage(xRefTable, filename, sd, objNr)
-
-	case filter.DCT:
-		return filename + ".jpx", ioutil.WriteFile(filename, sd.Raw, os.ModePerm)
-
-	case filter.JPX:
-		return filename + ".jpx", ioutil.WriteFile(filename, sd.Raw, os.ModePerm)
+	img, err := RenderImage(xRefTable, sd, fileName, objNr)
+	if err != nil {
+		return "", err
 	}
 
-	return "", nil
+	w, err := os.Create(fileName)
+	if err != nil {
+		return "", err
+	}
+
+	if _, err = io.Copy(w, img); err != nil {
+		return "", err
+	}
+
+	err = w.Close()
+
+	return fileName, err
 }

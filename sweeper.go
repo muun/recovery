@@ -54,7 +54,7 @@ func (s *Sweeper) BuildSweepTx(utxos []*scanner.Utxo, fee int64) (*wire.MsgTx, e
 
 func (s *Sweeper) BroadcastTx(tx *wire.MsgTx) error {
 	// Connect to an Electurm server using a fresh client and provider pair:
-	sp := scanner.NewServerProvider() // TODO create servers module, for provider and pool
+	sp := electrum.NewServerProvider() // TODO create servers module, for provider and pool
 	client := electrum.NewClient()
 
 	for !client.IsConnected() {

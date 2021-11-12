@@ -108,9 +108,52 @@ func validateObjectReferenceDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
 	return nil
 }
 
-func validateStructElementDictEntryKArray(xRefTable *pdf.XRefTable, a pdf.Array) error {
+func validateStructElementKArrayElement(xRefTable *pdf.XRefTable, o pdf.Object) error {
+	switch o := o.(type) {
 
+	case pdf.Integer:
+		return nil
+
+	case pdf.Dict:
+
+		dictType := o.Type()
+
+		if dictType == nil || *dictType == "StructElem" {
+			return validateStructElementDict(xRefTable, o)
+		}
+
+		if *dictType == "MCR" {
+			return validateMarkedContentReferenceDict(xRefTable, o)
+		}
+
+		if *dictType == "OBJR" {
+			return validateObjectReferenceDict(xRefTable, o)
+		}
+
+		return errors.Errorf("validateStructElementKArrayElement: invalid dictType %s (should be \"StructElem\" or \"OBJR\" or \"MCR\")\n", *dictType)
+
+	}
+
+	return errors.New("validateStructElementKArrayElement: unsupported PDF object")
+}
+
+func validateStructElementDictEntryKArray(xRefTable *pdf.XRefTable, a pdf.Array) error {
 	for _, o := range a {
+
+		// Avoid recursion.
+		ir, ok := o.(pdf.IndirectRef)
+		if ok {
+			valid, err := xRefTable.IsValid(ir)
+			if err != nil {
+				return err
+			}
+			if valid {
+				continue
+			}
+			if err := xRefTable.SetValid(ir); err != nil {
+				return err
+			}
+		}
 
 		o, err := xRefTable.Dereference(o)
 		if err != nil {
@@ -121,44 +164,10 @@ func validateStructElementDictEntryKArray(xRefTable *pdf.XRefTable, a pdf.Array)
 			continue
 		}
 
-		switch o := o.(type) {
-
-		case pdf.Integer:
-
-		case pdf.Dict:
-
-			dictType := o.Type()
-
-			if dictType == nil || *dictType == "StructElem" {
-				err = validateStructElementDict(xRefTable, o)
-				if err != nil {
-					return err
-				}
-				break
-			}
-
-			if *dictType == "MCR" {
-				err = validateMarkedContentReferenceDict(xRefTable, o)
-				if err != nil {
-					return err
-				}
-				break
-			}
-
-			if *dictType == "OBJR" {
-				err = validateObjectReferenceDict(xRefTable, o)
-				if err != nil {
-					return err
-				}
-				break
-			}
-
-			return errors.Errorf("validateStructElementDictEntryKArray: invalid dictType %s (should be \"StructElem\" or \"OBJR\" or \"MCR\")\n", *dictType)
-
-		default:
-			return errors.New("validateStructElementDictEntryKArray: unsupported PDF object")
-
+		if err := validateStructElementKArrayElement(xRefTable, o); err != nil {
+			return err
 		}
+
 	}
 
 	return nil
@@ -184,7 +193,6 @@ func validateStructElementDictEntryK(xRefTable *pdf.XRefTable, o pdf.Object) err
 	case pdf.Integer:
 
 	case pdf.Dict:
-
 		dictType := o.Type()
 
 		if dictType == nil || *dictType == "StructElem" {

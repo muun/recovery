@@ -583,8 +583,12 @@ func validateImageStreamDict(xRefTable *pdf.XRefTable, sd *pdf.StreamDict, isAlt
 }
 
 func validateFormStreamDictPart1(xRefTable *pdf.XRefTable, sd *pdf.StreamDict, dictName string) error {
-
-	_, err := validateIntegerEntry(xRefTable, sd.Dict, dictName, "FormType", OPTIONAL, pdf.V10, func(i int) bool { return i == 1 })
+	var err error
+	if xRefTable.ValidationMode == pdf.ValidationRelaxed {
+		_, err = validateNumberEntry(xRefTable, sd.Dict, dictName, "FormType", OPTIONAL, pdf.V10, func(f float64) bool { return f == 1. })
+	} else {
+		_, err = validateIntegerEntry(xRefTable, sd.Dict, dictName, "FormType", OPTIONAL, pdf.V10, func(i int) bool { return i == 1 })
+	}
 	if err != nil {
 		return err
 	}
@@ -752,8 +756,8 @@ func validateXObjectStreamDict(xRefTable *pdf.XRefTable, o pdf.Object) error {
 
 	// see 8.8 External Objects
 
-	// Dereference stream dict and ensure it is validated exactly once in order handle
-	// XObjects(forms) with recursive structures like produced by Microsoft.
+	// Dereference stream dict and ensure it is validated exactly once in order
+	// to handle XObjects(forms) with recursive structures like produced by Microsoft.
 	sd, valid, err := xRefTable.DereferenceStreamDict(o)
 	if valid {
 		return nil
@@ -778,7 +782,6 @@ func validateXObjectStreamDict(xRefTable *pdf.XRefTable, o pdf.Object) error {
 	}
 
 	if subtype == nil {
-
 		// relaxed
 		_, found := sd.Find("BBox")
 		if found {

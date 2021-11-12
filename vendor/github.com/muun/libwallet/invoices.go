@@ -5,8 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"path"
 	"time"
 
@@ -19,15 +21,15 @@ import (
 	"github.com/lightningnetwork/lnd/zpay32"
 
 	"github.com/muun/libwallet/hdpath"
-	"github.com/muun/libwallet/sphinx"
 	"github.com/muun/libwallet/walletdb"
 )
 
 const MaxUnusedSecrets = 5
 
 const (
-	identityKeyChildIndex = 0
-	htlcKeyChildIndex     = 1
+	identityKeyChildIndex          = 0
+	htlcKeyChildIndex              = 1
+	encryptedMetadataKeyChildIndex = 3
 )
 
 // InvoiceSecrets represents a bundle of secrets required to generate invoices
@@ -53,11 +55,18 @@ type RouteHints struct {
 	CltvExpiryDelta           int32
 }
 
+type OperationMetadata struct {
+	Invoice     string `json:"invoice,omitempty"`
+	LnurlSender string `json:"lnurlSender,omitempty"`
+}
+
 // InvoiceOptions defines additional options that can be configured when
 // creating a new invoice.
 type InvoiceOptions struct {
 	Description string
-	AmountSat   int64
+	AmountSat   int64 // deprecated
+	AmountMSat  int64
+	Metadata    *OperationMetadata
 }
 
 // InvoiceSecretsList is a wrapper around an InvoiceSecrets slice to be
@@ -200,7 +209,7 @@ func CreateInvoice(net *Network, userKey *HDPrivateKey, routeHints *RouteHints, 
 
 	var iopts []func(*zpay32.Invoice)
 	iopts = append(iopts, zpay32.RouteHint([]zpay32.HopHint{
-		zpay32.HopHint{
+		{
 			NodeID:                    nodeID,
 			ChannelID:                 dbInvoice.ShortChanId,
 			FeeBaseMSat:               uint32(routeHints.FeeBaseMsat),
@@ -214,7 +223,7 @@ func CreateInvoice(net *Network, userKey *HDPrivateKey, routeHints *RouteHints, 
 	features.RawFeatureVector.Set(lnwire.PaymentAddrOptional)
 
 	iopts = append(iopts, zpay32.Features(features))
-	iopts = append(iopts, zpay32.CLTVExpiry(144)) // ~1 day
+	iopts = append(iopts, zpay32.CLTVExpiry(72)) // ~1/2 day
 	iopts = append(iopts, zpay32.Expiry(1*time.Hour))
 
 	var paymentAddr [32]byte
@@ -227,8 +236,12 @@ func CreateInvoice(net *Network, userKey *HDPrivateKey, routeHints *RouteHints, 
 		// description or description hash must be non-empty, adding a placeholder for now
 		iopts = append(iopts, zpay32.Description(""))
 	}
+	// AmountSat is deprecated: remove after apps have migrated
 	if opts.AmountSat != 0 {
 		msat := lnwire.NewMSatFromSatoshis(btcutil.Amount(opts.AmountSat))
+		iopts = append(iopts, zpay32.Amount(msat))
+	} else if opts.AmountMSat != 0 {
+		msat := lnwire.MilliSatoshi(opts.AmountMSat)
 		iopts = append(iopts, zpay32.Amount(msat))
 	}
 
@@ -241,7 +254,11 @@ func CreateInvoice(net *Network, userKey *HDPrivateKey, routeHints *RouteHints, 
 	}
 
 	// recreate the client identity privkey
-	identityKeyPath := hdpath.MustParse(dbInvoice.KeyPath).Child(identityKeyChildIndex)
+	parentKeyPath, err := hdpath.Parse(dbInvoice.KeyPath)
+	if err != nil {
+		return "", err
+	}
+	identityKeyPath := parentKeyPath.Child(identityKeyChildIndex)
 	identityHDKey, err := userKey.DeriveTo(identityKeyPath.String())
 	if err != nil {
 		return "", err
@@ -261,8 +278,44 @@ func CreateInvoice(net *Network, userKey *HDPrivateKey, routeHints *RouteHints, 
 	}
 
 	now := time.Now()
+
+	// This is rounding down. Invoices with amount accept any amount larger
+	// but none smaller. So if we have non-integer sats amount, rounding down
+	// might accept a few msats less. But, rounding up would always fail the
+	// payment.
+	if invoice.MilliSat != nil {
+		dbInvoice.AmountSat = int64(invoice.MilliSat.ToSatoshis())
+	} else {
+		dbInvoice.AmountSat = 0
+	}
 	dbInvoice.State = walletdb.InvoiceStateUsed
 	dbInvoice.UsedAt = &now
+
+	var metadata *OperationMetadata
+	if opts.Metadata != nil {
+		metadata = opts.Metadata
+		metadata.Invoice = bech32
+	} else if opts.Description != "" {
+		metadata = &OperationMetadata{Invoice: bech32}
+	}
+
+	if metadata != nil {
+		var buf bytes.Buffer
+		err := json.NewEncoder(&buf).Encode(metadata)
+		if err != nil {
+			return "", fmt.Errorf("failed to encode metadata json: %w", err)
+		}
+		// encryption key is derived at 3/x/y with x and y random indexes
+		key, err := deriveMetadataEncryptionKey(userKey)
+		if err != nil {
+			return "", fmt.Errorf("failed to derive encryption key: %w", err)
+		}
+		encryptedMetadata, err := key.Encrypter().Encrypt(buf.Bytes())
+		if err != nil {
+			return "", fmt.Errorf("failed to encrypt metadata: %w", err)
+		}
+		dbInvoice.Metadata = encryptedMetadata
+	}
 
 	err = db.SaveInvoice(dbInvoice)
 	if err != nil {
@@ -272,136 +325,28 @@ func CreateInvoice(net *Network, userKey *HDPrivateKey, routeHints *RouteHints, 
 	return bech32, nil
 }
 
-// ExposePreimage gives the preimage matching a payment hash if we have it
-func ExposePreimage(paymentHash []byte) ([]byte, error) {
-
-	if len(paymentHash) != 32 {
-		return nil, fmt.Errorf("ExposePreimage: received invalid hash len %v", len(paymentHash))
+func deriveMetadataEncryptionKey(key *HDPrivateKey) (*HDPrivateKey, error) {
+	key, err := key.DerivedAt(encryptedMetadataKeyChildIndex, false)
+	if err != nil {
+		return nil, err
 	}
+	key, err = key.DerivedAt(int64(rand.Int()), false)
+	if err != nil {
+		return nil, err
+	}
+	return key.DerivedAt(int64(rand.Int()), false)
+}
 
-	// Lookup invoice data matching this HTLC using the payment hash
+func GetInvoiceMetadata(paymentHash []byte) (string, error) {
 	db, err := openDB()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	defer db.Close()
-
-	secrets, err := db.FindByPaymentHash(paymentHash)
+	invoice, err := db.FindByPaymentHash(paymentHash)
 	if err != nil {
-		return nil, fmt.Errorf("could not find invoice data for payment hash: %w", err)
+		return "", err
 	}
-
-	return secrets.Preimage, nil
-}
-
-func IsInvoiceFulfillable(paymentHash, onionBlob []byte, amount int64, userKey *HDPrivateKey, net *Network) error {
-	if len(paymentHash) != 32 {
-		return fmt.Errorf("IsInvoiceFulfillable: received invalid hash len %v", len(paymentHash))
-	}
-
-	// Lookup invoice data matching this HTLC using the payment hash
-	db, err := openDB()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	secrets, err := db.FindByPaymentHash(paymentHash)
-	if err != nil {
-		return fmt.Errorf("IsInvoiceFulfillable: could not find invoice data for payment hash: %w", err)
-	}
-
-	if len(onionBlob) == 0 {
-		return nil
-	}
-
-	identityKeyPath := hdpath.MustParse(secrets.KeyPath).Child(identityKeyChildIndex)
-
-	nodeHDKey, err := userKey.DeriveTo(identityKeyPath.String())
-	if err != nil {
-		return fmt.Errorf("IsInvoiceFulfillable: failed to derive key: %w", err)
-	}
-	nodeKey, err := nodeHDKey.key.ECPrivKey()
-	if err != nil {
-		return fmt.Errorf("IsInvoiceFulfillable: failed to get priv key: %w", err)
-	}
-
-	err = sphinx.Validate(
-		onionBlob,
-		paymentHash,
-		secrets.PaymentSecret,
-		nodeKey,
-		0, // This is used internally by the sphinx decoder but it's not needed
-		lnwire.MilliSatoshi(uint64(amount)*1000),
-		net.network,
-	)
-	if err != nil {
-		return fmt.Errorf("IsInvoiceFuflillable: invalid sphinx: %w", err)
-	}
-
-	return nil
-}
-
-type IncomingSwap struct {
-	FulfillmentTx       []byte
-	MuunSignature       []byte
-	Sphinx              []byte
-	PaymentHash         []byte
-	BlockHeight         int64 // unused
-	HtlcTx              []byte
-	OutputVersion       int    // unused
-	OutputPath          string // unused
-	SwapServerPublicKey string
-	MerkleTree          []byte // unused
-	HtlcExpiration      int64
-	HtlcBlock           []byte // unused
-	ConfirmationTarget  int64  // to validate fee rate, unused for now
-	CollectInSats       int64
-}
-
-func (s *IncomingSwap) VerifyAndFulfill(userKey *HDPrivateKey, muunKey *HDPublicKey, net *Network) ([]byte, error) {
-	// Validate the fullfillment tx proposed by Muun.
-	tx := wire.MsgTx{}
-	err := tx.DeserializeNoWitness(bytes.NewReader(s.FulfillmentTx))
-	if err != nil {
-		return nil, fmt.Errorf("could not deserialize fulfillment tx: %w", err)
-	}
-	if len(tx.TxIn) != 1 {
-		return nil, fmt.Errorf("expected fulfillment tx to have exactly 1 input, found %d", len(tx.TxIn))
-	}
-	if len(tx.TxOut) != 1 {
-		return nil, fmt.Errorf("expected fulfillment tx to have exactly 1 output, found %d", len(tx.TxOut))
-	}
-
-	swapServerPublicKey, err := hex.DecodeString(s.SwapServerPublicKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// Sign the htlc input (there is only one, at index 0)
-	coin := coinIncomingSwap{
-		Network:             net.network,
-		MuunSignature:       s.MuunSignature,
-		Sphinx:              s.Sphinx,
-		HtlcTx:              s.HtlcTx,
-		PaymentHash256:      s.PaymentHash,
-		SwapServerPublicKey: swapServerPublicKey,
-		ExpirationHeight:    s.HtlcExpiration,
-		VerifyOutputAmount:  true,
-		Collect:             btcutil.Amount(s.CollectInSats),
-	}
-	err = coin.SignInput(0, &tx, userKey, muunKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// Serialize and return the signed fulfillment tx
-	var buf bytes.Buffer
-	err = tx.Serialize(&buf)
-	if err != nil {
-		return nil, fmt.Errorf("could not serialize fulfillment tx: %w", err)
-	}
-	return buf.Bytes(), nil
+	return invoice.Metadata, nil
 }
 
 func openDB() (*walletdb.DB, error) {

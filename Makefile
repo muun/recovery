@@ -14,23 +14,50 @@ build-checksum-all:
 	go mod vendor -v
 
 	# Linux 32-bit:
-	docker build . -o bin --build-arg os=linux --build-arg arch=386 --build-arg out=recovery-tool-linux32
+	docker build . -o bin \
+		--build-arg os=linux \
+		--build-arg arch=386 \
+		--build-arg out=recovery-tool-linux32
+
 	/bin/echo -n '✓ Linux 32-bit ' && sha256sum "bin/recovery-tool-linux32"
 
 	# Linux 64-bit:
-	docker build . -o bin --build-arg os=linux --build-arg arch=amd64 --build-arg out=recovery-tool-linux64
+	docker build . -o bin \
+		--build-arg os=linux \
+		--build-arg arch=amd64 \
+		--build-arg out=recovery-tool-linux64
+
 	/bin/echo -n '✓ Linux 64-bit ' && sha256sum "bin/recovery-tool-linux64"
-	
+
 	# Windows 32-bit:
-	docker build . -o bin --build-arg os=windows --build-arg arch=386 --build-arg out=recovery-tool-windows32.exe
+	docker build . -o bin \
+		--build-arg os=windows \
+		--build-arg arch=386 \
+		--build-arg cc=i686-w64-mingw32-gcc \
+		--build-arg out=recovery-tool-windows32.exe
+
 	/bin/echo -n '✓ Windows 32-bit ' && sha256sum "bin/recovery-tool-windows32.exe"
 	
 	# Windows 64-bit:
-	docker build . -o bin --build-arg os=windows --build-arg arch=amd64 --build-arg out=recovery-tool-windows64.exe
+	docker build . -o bin \
+		--build-arg os=windows \
+		--build-arg arch=amd64 \
+		--build-arg cc=x86_64-w64-mingw32-gcc \
+		--build-arg out=recovery-tool-windows64.exe
+
 	/bin/echo -n '✓ Windows 64-bit ' && sha256sum "bin/recovery-tool-windows64.exe"
 
+	# NOTE:
+	# Darwin reproducible builds are disabled for now, since the inclusion of C code in the latest
+	# release made building the tool inside a Linux container extremely difficult. We'll be moving the
+	# process to GitHub actions, where we can build on MacOS.
+
 	# Darwin 64-bit:
-	docker build . -o bin --build-arg os=darwin --build-arg arch=amd64 --build-arg out=recovery-tool-macos64
-	/bin/echo -n '✓ MacOS 64-bit ' && sha256sum "bin/recovery-tool-macos64"
+	# docker build . -o bin \
+	# 	--build-arg os=darwin \
+	# 	--build-arg arch=amd64 \
+	# 	--build-arg out=recovery-tool-macos64
+
+	# /bin/echo -n '✓ MacOS 64-bit ' && sha256sum "bin/recovery-tool-macos64"
 
 .SILENT:

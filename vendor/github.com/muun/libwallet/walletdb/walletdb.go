@@ -25,7 +25,9 @@ type Invoice struct {
 	PaymentSecret []byte
 	KeyPath       string
 	ShortChanId   uint64
+	AmountSat     int64
 	State         InvoiceState
+	Metadata      string
 	UsedAt        *time.Time
 }
 
@@ -76,6 +78,47 @@ func migrate(db *gorm.DB) error {
 				return tx.DropTable("invoices").Error
 			},
 		},
+		{
+			ID: "add amount to invoices table",
+			Migrate: func(tx *gorm.DB) error {
+				type Invoice struct {
+					gorm.Model
+					Preimage      []byte
+					PaymentHash   []byte
+					PaymentSecret []byte
+					KeyPath       string
+					ShortChanId   uint64
+					AmountSat     int64
+					State         string
+					UsedAt        *time.Time
+				}
+				return tx.AutoMigrate(&Invoice{}).Error
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.Table("invoices").DropColumn(gorm.ToColumnName("AmountSat")).Error
+			},
+		},
+		{
+			ID: "add metadata to invoices table",
+			Migrate: func(tx *gorm.DB) error {
+				type Invoice struct {
+					gorm.Model
+					Preimage      []byte
+					PaymentHash   []byte
+					PaymentSecret []byte
+					KeyPath       string
+					ShortChanId   uint64
+					AmountSat     int64
+					State         InvoiceState
+					Metadata      string
+					UsedAt        *time.Time
+				}
+				return tx.AutoMigrate(&Invoice{}).Error
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.Table("invoices").DropColumn(gorm.ToColumnName("Metadata")).Error
+			},
+		},
 	})
 	return m.Migrate()
 }
@@ -83,7 +126,7 @@ func migrate(db *gorm.DB) error {
 func (d *DB) CreateInvoice(invoice *Invoice) error {
 	// uint64 values with high bit set are not supported, we will
 	// have to convert back and forth
-	invoice.ShortChanId = invoice.ShortChanId & 0x7FFFFFFFFFFFF
+	invoice.ShortChanId = invoice.ShortChanId & 0x7FFFFFFFFFFFFFFF
 	res := d.db.Create(invoice)
 	invoice.ShortChanId = invoice.ShortChanId | (1 << 63)
 	return res.Error
@@ -92,7 +135,7 @@ func (d *DB) CreateInvoice(invoice *Invoice) error {
 func (d *DB) SaveInvoice(invoice *Invoice) error {
 	// uint64 values with high bit set are not supported, we will
 	// have to convert back and forth
-	invoice.ShortChanId = invoice.ShortChanId & 0x7FFFFFFFFFFFF
+	invoice.ShortChanId = invoice.ShortChanId & 0x7FFFFFFFFFFFFFFF
 	res := d.db.Save(invoice)
 	invoice.ShortChanId = invoice.ShortChanId | (1 << 63)
 	return res.Error

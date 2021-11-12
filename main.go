@@ -11,8 +11,10 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/gookit/color"
 	"github.com/muun/libwallet"
+	"github.com/muun/libwallet/btcsuitew/btcutilw"
 	"github.com/muun/libwallet/emergencykit"
 	"github.com/muun/recovery/scanner"
+	"github.com/muun/recovery/utils"
 )
 
 const version = "2.1.0"
@@ -175,6 +177,10 @@ func printUsage() {
 }
 
 func printReport(report *scanner.Report) {
+	if utils.DebugMode {
+		return // don't print reports while debugging, there's richer information in the logs
+	}
+
 	var total int64
 	for _, utxo := range report.UtxosFound {
 		total += utxo.Amount
@@ -314,7 +320,7 @@ func readAddress() btcutil.Address {
 
 	userInput = strings.TrimSpace(userInput)
 
-	addr, err := btcutil.DecodeAddress(userInput, &chainParams)
+	addr, err := btcutilw.DecodeAddress(userInput, &chainParams)
 	if err != nil {
 		say(`
 			This is not a valid bitcoin address
