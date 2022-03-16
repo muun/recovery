@@ -18,11 +18,11 @@ and follow the instructions below.
 
 | System | Checksum | Link |
 | --- | --- | --- |
-| Linux 32-bit | `7b6de37a2c05635ddeaa77654805e6a94e7a596d4de7b54e3906d1dfe881f0de` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux32) |
-| Linux 64-bit | `dd298ce92e05660363959ee1e5a1af5fa7f111957764623b8a187e07b1c86159` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux64) |
-| Windows 32-bit | `2388bf2d6d024c81fc99245ed79cfd2edb3118ad926d07129c8d3fadebe44f91` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows32.exe) |
-| Windows 64-bit | `6050d6226b26516365206e012acd1e6edc0365b29d4c585e0fc8968a7fcd06b6` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows64.exe) |
-| MacOS 64-bit | `b842569fb380aa64a3ba5696f097f0512c2c4c8a8ea5da0ef9128eea80404af8` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-macos64) |
+| Linux 32-bit | `62ad190a48e56a7f54341fe89456622c233c3d9f9f1e536ae768014665b0ffad` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux32) |
+| Linux 64-bit | `4d413acabbbd4d9be614edb8e492a5100daae8b8ff88beb5db9e862d1bd17b70` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux64) |
+| Windows 32-bit | `82d5becec90c145cc01cce819cca7a53ebd5a16be76f5e4619be840dcc0f2b1a` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows32.exe) |
+| Windows 64-bit | `a8d668a05006899dfd5e43c69871ddf40c126fb2f578865a92f9fd32f77824c1` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows64.exe) |
+| MacOS 64-bit | `ef801b78b4989b0028161386c69def5dffeeea7b9d167fc94c665a06b8fc00fd` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-macos64) |
 
 ### Windows
 

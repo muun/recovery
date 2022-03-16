@@ -201,8 +201,8 @@ github.com/miekg/dns v0.0.0-20171125082028-79bfde677fa8/go.mod h1:W1PPwlIAgtquWB
 github.com/miekg/dns v1.1.29 h1:xHBEhR+t5RzcFJjBLJlax2daXOrTYtr9z4WdKEfWFzg=
 github.com/miekg/dns v1.1.29/go.mod h1:KNUDUusw/aVsxyTYZM1oqvCicbwhgbNgztCETuNZ7xM=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
-github.com/muun/libwallet v0.9.0 h1:WB2nS6flxPnPhNxDQssUki2wcBU1OaHfuNPXS9Hcb64=
-github.com/muun/libwallet v0.9.0/go.mod h1:txe/67yKJJ7F2Y5ZuSBovk7eljmYibLRp78Kkqw2yi0=
+github.com/muun/libwallet v0.10.0 h1:77/TRraIF/F5eaNAqvprUafvPcsn5TJiYTH19oWNluY=
+github.com/muun/libwallet v0.10.0/go.mod h1:zlqp9DirR4xuW3AxDmaStTBQzvNyijRex8yoPnmQF68=
 github.com/muun/neutrino v0.0.0-20190914162326-7082af0fa257 h1:NW17wq2gZlEFeW3/Zx3wSmqlD0wKGf7YvhpP+CNCsbE=
 github.com/muun/neutrino v0.0.0-20190914162326-7082af0fa257/go.mod h1:awTrhbCWjWNH4yVwZ4IE7nZbvpQ27e7OyD+jao7wRxA=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
@@ -232,6 +232,7 @@ github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084/go.mod h1:TjEm7z
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
+github.com/shopspring/decimal v1.2.0/go.mod h1:DKyhrW/HYNuLGql+MJL6WCR6knT2jwCFRcu2hWCYk4o=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
