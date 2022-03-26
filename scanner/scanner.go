@@ -10,7 +10,7 @@ import (
 )
 
 const electrumPoolSize = 6
-const taskTimeout = 2 * time.Minute
+const taskTimeout = 5 * time.Minute
 const batchSize = 100
 
 // Scanner finds unspent outputs and their transactions when given a map of addresses.

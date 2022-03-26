@@ -16,7 +16,7 @@ import (
 )
 
 const defaultLoggerTag = "Electrum/?"
-const connectionTimeout = time.Second * 10
+const connectionTimeout = time.Second * 30
 const messageDelim = byte('\n')
 
 var implsWithBatching = []string{"ElectrumX"}
