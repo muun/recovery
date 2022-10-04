@@ -10,13 +10,13 @@ import (
 )
 
 const electrumPoolSize = 6
-const taskTimeout = 5 * time.Minute
+const taskTimeout = 15 * time.Minute
 const batchSize = 100
 
 // Scanner finds unspent outputs and their transactions when given a map of addresses.
 //
 // It implements multi-server support, batching feature detection and use, concurrency control,
-// timeouts and cancelations, and provides a channel-based interface.
+// timeouts and cancellations, and provides a channel-based interface.
 //
 // Servers are provided by a ServerProvider instance, and rotated when unreachable or faulty. We
 // trust ServerProvider to prioritize good targets.

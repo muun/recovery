@@ -16,13 +16,16 @@ control over their own money. Bitcoin has finally made this possible.
 Download the appropriate binary from the following table (or see [`BUILD.md`](BUILD.md) to build it yourself),
 and follow the instructions below.
 
-| System | Checksum | Link |
+| System | Link |
 | --- | --- | --- |
-| Linux 32-bit | `e0fba3c21fd45e6a0ce0542604fa3fe9c2881b9a6efb16a51dcc2bdb79eddff3` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux32) |
-| Linux 64-bit | `fbce7deeb4760b339f81a7d53851e254bc94bc6a64a30ac073abec7044eea135` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-linux64) |
-| Windows 32-bit | `fab697f3cf549146c8425e6aaf69aba62f4801c38337b3cd8b1a1a3325fe2141` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows32.exe) |
-| Windows 64-bit | `36eea8acbfda0204e50093b9bda331203a8efb50ffba60318f9b1dff05fb76b5` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-windows64.exe) |
-| MacOS 64-bit | `190cd601a24941a9e451c45082a3dc33f61436927d10bd8e0fbec03fc3f73cef` | [Download](https://raw.githubusercontent.com/muun/recovery/master/bin/recovery-tool-macos64) |
+| Linux 32-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-linux32) |
+| Linux 64-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-linux64) |
+| Windows 32-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-windows32.exe) |
+| Windows 64-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-windows64.exe) |
+| MacOS 12 Intel 64-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-macos-12-amd64) |
+| MacOS 12 ARM 64-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-macos-12-arm64) |
+| MacOS 11 Intel 64-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-macos-11-amd64) |
+| MacOS 11 ARM 64-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-macos-11-arm64) |
 
 ### Windows
 
@@ -33,12 +36,12 @@ source. Click `More info`, and then `Run anyway`.
 ### MacOS
 
 Download the file to a known location (say `Downloads` in your Home directory), then open a terminal
-and run:
+and run (changing the last part of the binary name to match yours):
 
 ```
 cd ~/Downloads
-chmod +x recovery-tool-macos64
-./recovery-tool-macos64 <path to your Emergency Kit PDF>
+chmod +x recovery-tool-macos-12-amd64
+./recovery-tool-macos-12-amd64 <path to your Emergency Kit PDF>
 ```
 
 #### Security Warnings

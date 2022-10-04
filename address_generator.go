@@ -5,28 +5,23 @@ import (
 	"log"
 
 	"github.com/muun/libwallet"
+	"github.com/muun/recovery/utils"
 )
 
-type signingDetails struct {
-	Address libwallet.MuunAddress
-}
-
 type AddressGenerator struct {
-	addrs   map[string]signingDetails
-	userKey *libwallet.HDPrivateKey
-	muunKey *libwallet.HDPrivateKey
+	addressCount     int
+	userKey          *libwallet.HDPrivateKey
+	muunKey          *libwallet.HDPrivateKey
+	generateContacts bool
 }
 
-func NewAddressGenerator(userKey, muunKey *libwallet.HDPrivateKey) *AddressGenerator {
+func NewAddressGenerator(userKey, muunKey *libwallet.HDPrivateKey, generateContacts bool) *AddressGenerator {
 	return &AddressGenerator{
-		addrs:   make(map[string]signingDetails),
-		userKey: userKey,
-		muunKey: muunKey,
+		addressCount:     0,
+		userKey:          userKey,
+		muunKey:          muunKey,
+		generateContacts: generateContacts,
 	}
-}
-
-func (g *AddressGenerator) Addresses() map[string]signingDetails {
-	return g.addrs
 }
 
 // Stream returns a channel that emits all addresses generated.
@@ -34,11 +29,8 @@ func (g *AddressGenerator) Stream() chan libwallet.MuunAddress {
 	ch := make(chan libwallet.MuunAddress)
 
 	go func() {
-		g.generate()
-
-		for _, details := range g.Addresses() {
-			ch <- details.Address
-		}
+		g.generate(ch)
+		utils.NewLogger("ADDR").Printf("Addresses %v\n", g.addressCount)
 
 		close(ch)
 	}()
@@ -46,29 +38,31 @@ func (g *AddressGenerator) Stream() chan libwallet.MuunAddress {
 	return ch
 }
 
-func (g *AddressGenerator) generate() {
-	g.generateChangeAddrs()
-	g.generateExternalAddrs()
-	g.generateContactAddrs(100)
+func (g *AddressGenerator) generate(consumer chan libwallet.MuunAddress) {
+	g.generateChangeAddrs(consumer)
+	g.generateExternalAddrs(consumer)
+	if g.generateContacts {
+		g.generateContactAddrs(consumer, 100)
+	}
 }
 
-func (g *AddressGenerator) generateChangeAddrs() {
+func (g *AddressGenerator) generateChangeAddrs(consumer chan libwallet.MuunAddress) {
 	const changePath = "m/1'/1'/0"
 	changeUserKey, _ := g.userKey.DeriveTo(changePath)
 	changeMuunKey, _ := g.muunKey.DeriveTo(changePath)
 
-	g.deriveTree(changeUserKey, changeMuunKey, 2500, "change")
+	g.deriveTree(consumer, changeUserKey, changeMuunKey, 2500, "change")
 }
 
-func (g *AddressGenerator) generateExternalAddrs() {
+func (g *AddressGenerator) generateExternalAddrs(consumer chan libwallet.MuunAddress) {
 	const externalPath = "m/1'/1'/1"
 	externalUserKey, _ := g.userKey.DeriveTo(externalPath)
 	externalMuunKey, _ := g.muunKey.DeriveTo(externalPath)
 
-	g.deriveTree(externalUserKey, externalMuunKey, 2500, "external")
+	g.deriveTree(consumer, externalUserKey, externalMuunKey, 2500, "external")
 }
 
-func (g *AddressGenerator) generateContactAddrs(numContacts int64) {
+func (g *AddressGenerator) generateContactAddrs(consumer chan libwallet.MuunAddress, numContacts int64) {
 	const addressPath = "m/1'/1'/2"
 	contactUserKey, _ := g.userKey.DeriveTo(addressPath)
 	contactMuunKey, _ := g.muunKey.DeriveTo(addressPath)
@@ -77,11 +71,16 @@ func (g *AddressGenerator) generateContactAddrs(numContacts int64) {
 		partialMuunUserKey, _ := contactMuunKey.DerivedAt(i, false)
 
 		branch := fmt.Sprintf("contacts-%v", i)
-		g.deriveTree(partialContactUserKey, partialMuunUserKey, 200, branch)
+		g.deriveTree(consumer, partialContactUserKey, partialMuunUserKey, 200, branch)
 	}
 }
 
-func (g *AddressGenerator) deriveTree(rootUserKey, rootMuunKey *libwallet.HDPrivateKey, count int64, name string) {
+func (g *AddressGenerator) deriveTree(
+	consumer chan libwallet.MuunAddress,
+	rootUserKey, rootMuunKey *libwallet.HDPrivateKey,
+	count int64,
+	name string,
+) {
 
 	for i := int64(0); i <= count; i++ {
 		userKey, err := rootUserKey.DerivedAt(i, false)
@@ -97,36 +96,32 @@ func (g *AddressGenerator) deriveTree(rootUserKey, rootMuunKey *libwallet.HDPriv
 
 		addrV2, err := libwallet.CreateAddressV2(userKey.PublicKey(), muunKey.PublicKey())
 		if err == nil {
-			g.addrs[addrV2.Address()] = signingDetails{
-				Address: addrV2,
-			}
+			consumer <- addrV2
+			g.addressCount++
 		} else {
 			log.Printf("failed to generate %v v2 for %v due to %v", name, i, err)
 		}
 
 		addrV3, err := libwallet.CreateAddressV3(userKey.PublicKey(), muunKey.PublicKey())
 		if err == nil {
-			g.addrs[addrV3.Address()] = signingDetails{
-				Address: addrV3,
-			}
+			consumer <- addrV3
+			g.addressCount++
 		} else {
 			log.Printf("failed to generate %v v3 for %v due to %v", name, i, err)
 		}
 
 		addrV4, err := libwallet.CreateAddressV4(userKey.PublicKey(), muunKey.PublicKey())
 		if err == nil {
-			g.addrs[addrV4.Address()] = signingDetails{
-				Address: addrV4,
-			}
+			consumer <- addrV4
+			g.addressCount++
 		} else {
 			log.Printf("failed to generate %v v4 for %v due to %v", name, i, err)
 		}
 
 		addrV5, err := libwallet.CreateAddressV5(userKey.PublicKey(), muunKey.PublicKey())
 		if err == nil {
-			g.addrs[addrV5.Address()] = signingDetails{
-				Address: addrV5,
-			}
+			consumer <- addrV5
+			g.addressCount++
 		} else {
 			log.Printf("failed to generate %v v5 for %v due to %v", name, i, err)
 		}

@@ -1,4 +1,7 @@
 libwallet/.gitignore# binary
 libwallet
 .build
+.idea
+.vscode
+.DS_Store
 

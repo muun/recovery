@@ -27,7 +27,6 @@ func (p *ServerProvider) NextServer() string {
 // See https://github.com/spesmilo/electrum/blob/master/electrum/servers.json
 // See https://github.com/kyuupichan/electrumx/blob/master/electrumx/lib/coins.py
 // See `cmd/survey/main.go`
-//
 var PublicServers = []string{
 	// Fast servers with batching
 	"blackie.c3-soft.com:57002",             // impl: Fulcrum 1.6.0, batching: true, ttc: 0.72, speed: 97, from: fortress.qtornado.com:443

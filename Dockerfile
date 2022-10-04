@@ -14,7 +14,7 @@
 
 # --------------------------------------------------------------------------------------------------
 
-FROM ubuntu:20.04 AS rtool-build-base
+FROM ubuntu:22.04 AS rtool-build-base
 
 # Avoid prompts during package installation:
 ENV DEBIAN_FRONTEND="noninteractive"
@@ -24,9 +24,10 @@ RUN apt-get update
 
 # Install the various compilers we're going to use, with specific versions:
 RUN apt-get install -y \
-  golang-1.16-go=1.16.2-0ubuntu1~20.04 \
-  gcc-mingw-w64=9.3.0-7ubuntu1+22~exp1ubuntu4 \
-  gcc-multilib=4:9.3.0-1ubuntu2
+  golang-1.18-go=1.18.1-1ubuntu1 \
+  gcc-mingw-w64=10.3.0-14ubuntu1+24.3 \
+  gcc-multilib=4:11.2.0-1ubuntu1 \
+  git=1:2.34.1-1ubuntu1
 
 # Copy the source code into the container:
 WORKDIR /src
@@ -46,7 +47,7 @@ ENV CGO_ENABLED=1
 ENV GO386=softfloat
 
 # Do the thing:
-RUN env GOOS=${os} GOARCH=${arch} CC=${cc} /usr/lib/go-1.16/bin/go build -mod=vendor -a -trimpath -o /out .
+RUN env GOOS=${os} GOARCH=${arch} CC=${cc} /usr/lib/go-1.18/bin/go build -mod=vendor -a -trimpath -o /out .
 
 # --------------------------------------------------------------------------------------------------
 

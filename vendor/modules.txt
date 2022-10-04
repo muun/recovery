@@ -62,10 +62,6 @@ github.com/decred/dcrd/lru
 github.com/fiatjaf/go-lnurl
 # github.com/go-errors/errors v1.0.1
 github.com/go-errors/errors
-# github.com/golang/protobuf v1.4.2
-github.com/golang/protobuf/proto
-# github.com/google/uuid v1.1.1
-github.com/google/uuid
 # github.com/gookit/color v1.4.2
 github.com/gookit/color
 # github.com/hhrutter/lzw v0.0.0-20190829144645-6f07a24e8650
@@ -134,7 +130,7 @@ github.com/ltcsuite/ltcd/wire
 github.com/mattn/go-sqlite3
 # github.com/miekg/dns v1.1.29
 github.com/miekg/dns
-# github.com/muun/libwallet v0.10.0
+# github.com/muun/libwallet v0.11.0
 github.com/muun/libwallet
 github.com/muun/libwallet/addresses
 github.com/muun/libwallet/aescbc
@@ -175,13 +171,13 @@ github.com/tidwall/pretty
 github.com/xo/terminfo
 # go.etcd.io/bbolt v1.3.5-0.20200615073812-232d8fc87f50
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+# golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
+golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/pbkdf2
-golang.org/x/crypto/poly1305
 golang.org/x/crypto/ripemd160
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
@@ -192,7 +188,7 @@ golang.org/x/image/riff
 golang.org/x/image/vp8
 golang.org/x/image/vp8l
 golang.org/x/image/webp
-# golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+# golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 golang.org/x/net/bpf
 golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
@@ -200,12 +196,15 @@ golang.org/x/net/internal/socks
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/proxy
-# golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
+# golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.6
+# golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
+golang.org/x/term
+# golang.org/x/text v0.3.7
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
 # google.golang.org/protobuf v1.25.0
