@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -17,10 +18,16 @@ import (
 	"github.com/muun/recovery/utils"
 )
 
-const version = "2.1.0"
+var debugOutputStream = bytes.NewBuffer(nil)
 
 func main() {
+	utils.SetOutputStream(debugOutputStream)
+
+	var generateContacts bool
+
 	// Pick up command-line arguments:
+	flag.BoolVar(&generateContacts, "generate-contacts", false, "Generate contact addresses")
+	flag.Usage = printUsage
 	flag.Parse()
 	args := flag.Args()
 
@@ -62,19 +69,17 @@ func main() {
 		Starting scan of all possible addresses. This will take a few minutes.
 	`)
 
-	transactionID := doRecovery(decryptedKeys, destinationAddress)
+	doRecovery(decryptedKeys, destinationAddress, generateContacts)
 
-	sayBlock(`
-		Transaction sent! You can check the status here: https://blockstream.info/tx/%v
-		(it will appear in Blockstream after a short delay)
-
-		We appreciate all kinds of feedback. If you have any, send it to {blue contact@muun.com}
-	`, transactionID)
+	sayBlock("We appreciate all kinds of feedback. If you have any, send it to {blue contact@muun.com}\n")
 }
 
 // doRecovery runs the scan & sweep process, and returns the ID of the broadcasted transaction.
-func doRecovery(decryptedKeys []*libwallet.DecryptedPrivateKey, destinationAddress btcutil.Address) string {
-	addrGen := NewAddressGenerator(decryptedKeys[0].Key, decryptedKeys[1].Key)
+func doRecovery(
+	decryptedKeys []*libwallet.DecryptedPrivateKey, destinationAddress btcutil.Address, generateContacts bool,
+) {
+
+	addrGen := NewAddressGenerator(decryptedKeys[0].Key, decryptedKeys[1].Key, generateContacts)
 	utxoScanner := scanner.NewScanner()
 
 	addresses := addrGen.Stream()
@@ -107,7 +112,7 @@ func doRecovery(decryptedKeys []*libwallet.DecryptedPrivateKey, destinationAddre
 
 	if len(utxos) == 0 {
 		sayBlock("No funds were discovered\n\n")
-		return ""
+		return
 	}
 
 	var total int64
@@ -138,7 +143,11 @@ func doRecovery(decryptedKeys []*libwallet.DecryptedPrivateKey, destinationAddre
 		exitWithError(err)
 	}
 
-	return sweepTx.TxHash().String()
+	sayBlock(`
+		Transaction sent! You can check the status here: https://mempool.space/tx/%v
+		(it will appear in Blockstream after a short delay)
+
+	`, sweepTx.TxHash().String())
 }
 
 func exitWithError(err error) {
@@ -146,7 +155,8 @@ func exitWithError(err error) {
 		{red Error!}
 		The Recovery Tool encountered a problem. Please, try again.
 
-		If the problem persists, contact {blue support@muun.com} and include this:
+		If the problem persists, contact {blue support@muun.com} and include the file
+		called error_log you can find in the same folder as this tool.
 		
 		――― {white error report} ―――
 		%v
@@ -154,6 +164,10 @@ func exitWithError(err error) {
 
 		We're always there to help.
 	`, err)
+
+	// Ensure we always log the error in the file
+	_ = utils.NewLogger("").Errorf("exited with error: %s", err.Error())
+	_ = os.WriteFile("error_log", debugOutputStream.Bytes(), 0600)
 
 	os.Exit(1)
 }
@@ -174,6 +188,7 @@ func printWelcomeMessage() {
 
 func printUsage() {
 	fmt.Println("Usage: recovery-tool [optional: path to Emergency Kit PDF]")
+	flag.PrintDefaults()
 }
 
 func printReport(report *scanner.Report) {

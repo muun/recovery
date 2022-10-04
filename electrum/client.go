@@ -17,7 +17,9 @@ import (
 
 const defaultLoggerTag = "Electrum/?"
 const connectionTimeout = time.Second * 30
+const callTimeout = time.Second * 30
 const messageDelim = byte('\n')
+const noTimeout = 0
 
 var implsWithBatching = []string{"ElectrumX"}
 
@@ -178,7 +180,7 @@ func (c *Client) ServerVersion() ([]string, error) {
 
 	var response ServerVersionResponse
 
-	err := c.call(&request, &response)
+	err := c.call(&request, &response, callTimeout)
 	if err != nil {
 		return nil, c.log.Errorf("ServerVersion failed: %w", err)
 	}
@@ -195,7 +197,7 @@ func (c *Client) ServerFeatures() (*ServerFeatures, error) {
 
 	var response ServerFeaturesResponse
 
-	err := c.call(&request, &response)
+	err := c.call(&request, &response, callTimeout)
 	if err != nil {
 		return nil, c.log.Errorf("ServerFeatures failed: %w", err)
 	}
@@ -224,7 +226,9 @@ func (c *Client) ServerPeers() ([]string, error) {
 }
 
 // rawServerPeers calls the `server.peers.subscribe` method and returns this monstrosity:
-// 		[ "<ip>", "<domain>", ["<version>", "s<SSL port>", "t<TLS port>"] ]
+//
+//	[ "<ip>", "<domain>", ["<version>", "s<SSL port>", "t<TLS port>"] ]
+//
 // Ports can be in any order, or absent if the protocol is not supported
 func (c *Client) rawServerPeers() ([]interface{}, error) {
 	request := Request{
@@ -234,7 +238,7 @@ func (c *Client) rawServerPeers() ([]interface{}, error) {
 
 	var response ServerPeersResponse
 
-	err := c.call(&request, &response)
+	err := c.call(&request, &response, callTimeout)
 	if err != nil {
 		return nil, c.log.Errorf("rawServerPeers failed: %w", err)
 	}
@@ -251,7 +255,7 @@ func (c *Client) Broadcast(rawTx string) (string, error) {
 
 	var response BroadcastResponse
 
-	err := c.call(&request, &response)
+	err := c.call(&request, &response, callTimeout)
 	if err != nil {
 		return "", c.log.Errorf("Broadcast failed: %w", err)
 	}
@@ -268,7 +272,7 @@ func (c *Client) GetTransaction(txID string) (string, error) {
 
 	var response GetTransactionResponse
 
-	err := c.call(&request, &response)
+	err := c.call(&request, &response, callTimeout)
 	if err != nil {
 		return "", c.log.Errorf("GetTransaction failed: %w", err)
 	}
@@ -284,7 +288,7 @@ func (c *Client) ListUnspent(indexHash string) ([]UnspentRef, error) {
 	}
 	var response ListUnspentResponse
 
-	err := c.call(&request, &response)
+	err := c.call(&request, &response, callTimeout)
 	if err != nil {
 		return nil, c.log.Errorf("ListUnspent failed: %w", err)
 	}
@@ -295,17 +299,21 @@ func (c *Client) ListUnspent(indexHash string) ([]UnspentRef, error) {
 // ListUnspentBatch is like `ListUnspent`, but using batching.
 func (c *Client) ListUnspentBatch(indexHashes []string) ([][]UnspentRef, error) {
 	requests := make([]*Request, len(indexHashes))
+	method := "blockchain.scripthash.listunspent"
 
 	for i, indexHash := range indexHashes {
 		requests[i] = &Request{
-			Method: "blockchain.scripthash.listunspent",
+			Method: method,
 			Params: []Param{indexHash},
 		}
 	}
 
 	var responses []ListUnspentResponse
 
-	err := c.callBatch(requests, &responses)
+	// Give it a little more time than non-batch calls
+	timeout := callTimeout * 2
+
+	err := c.callBatch(method, requests, &responses, timeout)
 	if err != nil {
 		return nil, fmt.Errorf("ListUnspentBatch failed: %w", err)
 	}
@@ -365,7 +373,7 @@ func (c *Client) IsConnected() bool {
 }
 
 // call executes a request with JSON marshalling, and loads the response into a pointer.
-func (c *Client) call(request *Request, response interface{}) error {
+func (c *Client) call(request *Request, response interface{}, timeout time.Duration) error {
 	// Assign a fresh request ID:
 	request.ID = c.incRequestID()
 
@@ -376,9 +384,9 @@ func (c *Client) call(request *Request, response interface{}) error {
 	}
 
 	// Make the call, obtain the serialized response:
-	responseBytes, err := c.callRaw(requestBytes)
+	responseBytes, err := c.callRaw(request.Method, requestBytes, timeout)
 	if err != nil {
-		return c.log.Errorf("Send failed %s: %w", string(requestBytes), err)
+		return c.log.Errorf("Send failed %s: %w", request.Method, err)
 	}
 
 	// Deserialize into an error, to see if there's any:
@@ -386,7 +394,7 @@ func (c *Client) call(request *Request, response interface{}) error {
 
 	err = json.Unmarshal(responseBytes, &maybeErrorResponse)
 	if err != nil {
-		return c.log.Errorf("Unmarshal of potential error failed: %s %w", string(responseBytes), err)
+		return c.log.Errorf("Unmarshal of potential error failed: %s %w", request.Method, err)
 	}
 
 	if maybeErrorResponse.Error != nil {
@@ -404,7 +412,9 @@ func (c *Client) call(request *Request, response interface{}) error {
 
 // call executes a batch request with JSON marshalling, and loads the response into a pointer.
 // Response may not match request order, so callers MUST sort them by ID.
-func (c *Client) callBatch(requests []*Request, response interface{}) error {
+func (c *Client) callBatch(
+	method string, requests []*Request, response interface{}, timeout time.Duration,
+) error {
 	// Assign fresh request IDs:
 	for _, request := range requests {
 		request.ID = c.incRequestID()
@@ -417,9 +427,9 @@ func (c *Client) callBatch(requests []*Request, response interface{}) error {
 	}
 
 	// Make the call, obtain the serialized response:
-	responseBytes, err := c.callRaw(requestBytes)
+	responseBytes, err := c.callRaw(method, requestBytes, timeout)
 	if err != nil {
-		return c.log.Errorf("Send failed %s: %w", string(requestBytes), err)
+		return c.log.Errorf("Send failed %s: %w", method, err)
 	}
 
 	// Deserialize into an array of errors, to see if there's any:
@@ -447,28 +457,49 @@ func (c *Client) callBatch(requests []*Request, response interface{}) error {
 }
 
 // callRaw sends a raw request in bytes, and returns a raw response (or an error).
-func (c *Client) callRaw(request []byte) ([]byte, error) {
-	c.log.Printf("Sending %s", string(request))
+func (c *Client) callRaw(method string, request []byte, timeout time.Duration) ([]byte, error) {
+	c.log.Printf("Sending %s request", method)
+	c.log.Tracef("Sending %s body: %s", method, string(request))
 
 	if !c.IsConnected() {
-		return nil, c.log.Errorf("Send failed %s: not connected", string(request))
+		return nil, c.log.Errorf("Send failed %s: not connected", method)
 	}
 
 	request = append(request, messageDelim)
 
-	_, err := c.conn.Write(request)
+	start := time.Now()
+
+	// SetDeadline is an absolute time based timeout. That is, we set an exact
+	// time we want it to fail.
+	var deadline time.Time
+	if timeout == noTimeout {
+		// This means no deadline
+		deadline = time.Time{}
+	} else {
+		deadline = start.Add(timeout)
+	}
+	err := c.conn.SetDeadline(deadline)
 	if err != nil {
-		return nil, c.log.Errorf("Send failed %s: %w", string(request), err)
+		return nil, c.log.Errorf("Send failed %s: SetDeadline failed", method)
+	}
+
+	_, err = c.conn.Write(request)
+
+	if err != nil {
+		duration := time.Now().Sub(start)
+		return nil, c.log.Errorf("Send failed %s after %vms: %w", method, duration.Milliseconds(), err)
 	}
 
 	reader := bufio.NewReader(c.conn)
 
 	response, err := reader.ReadBytes(messageDelim)
+	duration := time.Now().Sub(start)
 	if err != nil {
-		return nil, c.log.Errorf("Receive failed: %w", err)
+		return nil, c.log.Errorf("Receive failed %s after %vms: %w", method, duration.Milliseconds(), err)
 	}
 
-	c.log.Printf("Received %s", string(response))
+	c.log.Printf("Received %s after %vms", method, duration.Milliseconds())
+	c.log.Tracef("Received %s: %s", method, string(response))
 
 	return response, nil
 }
