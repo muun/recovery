@@ -17,7 +17,7 @@ Download the appropriate binary from the following table (or see [`BUILD.md`](BU
 and follow the instructions below.
 
 | System | Link |
-| --- | --- | --- |
+| --- | --- |
 | Linux 32-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-linux32) |
 | Linux 64-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-linux64) |
 | Windows 32-bit | [Download](https://github.com/muun/recovery/releases/latest/download/recovery-tool-windows32.exe) |
