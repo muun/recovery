@@ -26,7 +26,8 @@ RUN apt-get update
 RUN apt-get install -y \
   golang-1.18-go=1.18.1-1ubuntu1 \
   gcc-mingw-w64=10.3.0-14ubuntu1+24.3 \
-  gcc-multilib=4:11.2.0-1ubuntu1
+  gcc-multilib=4:11.2.0-1ubuntu1 \
+  git=1:2.34.1-1ubuntu1
 
 # Copy the source code into the container:
 WORKDIR /src
