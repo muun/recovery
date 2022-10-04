@@ -1,0 +1,125 @@
+name: Build and release
+
+on:
+  push:
+    branch: release-v*
+    tags: v*
+
+jobs:
+  build-mac:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, macos-11]
+        arch: [amd64, arm64]
+
+    runs-on: ${{ matrix.os }}
+    env:
+      out: recovery-tool-${{ matrix.os }}-${{ matrix.arch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+
+      - name: Create output dir
+        run: |
+          mkdir -p bin
+
+      - name: Set up Go
+        uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f
+        with:
+          go-version: 1.18.1
+
+      - name: Build
+        run: |
+          CGO_ENABLED=1 \
+          GOOS=darwin \
+          GOARCH=${{ matrix.arch }} \
+          go build -mod=vendor -a -trimpath -o bin/${{ env.out }}
+
+      - name: Upload binary
+        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        with:
+          name: ${{ env.out }}
+          path: bin/${{ env.out }}
+
+  build:
+    runs-on: ubuntu-22.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - os: "linux"
+            arch: "386"
+            out: "recovery-tool-linux32"
+          - os: "linux"
+            arch: "amd64"
+            out: "recovery-tool-linux64"
+          - os: "windows"
+            arch: "386"
+            cc: "i686-w64-mingw32-gcc"
+            out: "recovery-tool-windows32.exe"
+          - os: "windows"
+            arch: "amd64"
+            cc: "x86_64-w64-mingw32-gcc"
+            out: "recovery-tool-windows64.exe"
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6
+        with:
+          buildkitd-flags: --debug
+
+      - name: Checkout
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+
+      - name: Create output dir
+        run: |
+          mkdir -p bin
+
+      - name: Build
+        uses: docker/build-push-action@c84f38281176d4c9cdb1626ffafcd6b3911b5d94
+        with:
+          file: Dockerfile
+          context: .
+          outputs: bin
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          build-args: |
+            cc=${{ matrix.target.cc }}
+            os=${{ matrix.target.os }}
+            arch=${{ matrix.target.arch }}
+            out=${{ matrix.target.out }}
+
+      - name: Upload binary
+        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        with:
+          name: ${{ matrix.target.out }}
+          path: bin/${{ matrix.target.out }}
+
+  release:
+    runs-on: ubuntu-22.04
+    needs: [build-mac, build]
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          path: artifacts
+
+      - name: Compute SHA256 checksums
+        run: |
+          echo "| System | Checksum |" > sha_sum_table
+          echo "| --- | --- |" >> sha_sum_table
+          sha256sum artifacts/*/* | sed "s/\([^ ]*\) *artifacts\/[^/]*\/\(.*\)/| \2 | \1 |/" >> sha_sum_table
+
+        
+      - name: Release
+        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body_path: sha_sum_table
+          files: |
+            artifacts/*/*
