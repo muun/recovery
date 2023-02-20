@@ -14,19 +14,31 @@ import (
 	"github.com/muun/libwallet"
 	"github.com/muun/libwallet/btcsuitew/btcutilw"
 	"github.com/muun/libwallet/emergencykit"
+	"github.com/muun/recovery/electrum"
 	"github.com/muun/recovery/scanner"
 	"github.com/muun/recovery/utils"
 )
 
+const electrumPoolSize = 6
+
 var debugOutputStream = bytes.NewBuffer(nil)
+
+type config struct {
+	generateContacts     bool
+	providedElectrum     string
+	usesProvidedElectrum bool
+	onlyScan             bool
+}
 
 func main() {
 	utils.SetOutputStream(debugOutputStream)
 
-	var generateContacts bool
+	var config config
 
 	// Pick up command-line arguments:
-	flag.BoolVar(&generateContacts, "generate-contacts", false, "Generate contact addresses")
+	flag.BoolVar(&config.generateContacts, "generate-contacts", false, "Generate contact addresses")
+	flag.StringVar(&config.providedElectrum, "electrum-server", "", "Connect to this electrum server to find funds")
+	flag.BoolVar(&config.onlyScan, "only-scan", false, "Only scan for UTXOs without generating a transaction")
 	flag.Usage = printUsage
 	flag.Parse()
 	args := flag.Args()
@@ -39,6 +51,11 @@ func main() {
 
 	// Welcome!
 	printWelcomeMessage()
+
+	config.usesProvidedElectrum = len(strings.TrimSpace(config.providedElectrum)) > 0
+	if config.usesProvidedElectrum {
+		validateProvidedElectrum(config.providedElectrum)
+	}
 
 	// We're going to need a few things to move forward with the recovery process. Let's make a list
 	// so we keep them in mind:
@@ -62,25 +79,41 @@ func main() {
 
 	decryptedKeys[0].Key.Path = "m/1'/1'" // a little adjustment for legacy users.
 
-	// Finally, we need the destination address to sweep the funds:
-	destinationAddress = readAddress()
+	if !config.onlyScan {
+		// Finally, we need the destination address to sweep the funds:
+		destinationAddress = readAddress()
+	}
 
 	sayBlock(`
 		Starting scan of all possible addresses. This will take a few minutes.
 	`)
 
-	doRecovery(decryptedKeys, destinationAddress, generateContacts)
+	doRecovery(decryptedKeys, destinationAddress, config)
 
 	sayBlock("We appreciate all kinds of feedback. If you have any, send it to {blue contact@muun.com}\n")
 }
 
 // doRecovery runs the scan & sweep process, and returns the ID of the broadcasted transaction.
 func doRecovery(
-	decryptedKeys []*libwallet.DecryptedPrivateKey, destinationAddress btcutil.Address, generateContacts bool,
+	decryptedKeys []*libwallet.DecryptedPrivateKey,
+	destinationAddress btcutil.Address,
+	config config,
 ) {
 
-	addrGen := NewAddressGenerator(decryptedKeys[0].Key, decryptedKeys[1].Key, generateContacts)
-	utxoScanner := scanner.NewScanner()
+	addrGen := NewAddressGenerator(decryptedKeys[0].Key, decryptedKeys[1].Key, config.generateContacts)
+
+	var electrumProvider *electrum.ServerProvider
+	if config.usesProvidedElectrum {
+		electrumProvider = electrum.NewServerProvider([]string{
+			config.providedElectrum,
+		})
+	} else {
+		electrumProvider = electrum.NewServerProvider(electrum.PublicServers)
+	}
+
+	connectionPool := electrum.NewPool(electrumPoolSize, !config.usesProvidedElectrum)
+
+	utxoScanner := scanner.NewScanner(connectionPool, electrumProvider)
 
 	addresses := addrGen.Stream()
 
@@ -122,6 +155,9 @@ func doRecovery(
 	}
 
 	say("\n— {white %d} sats total\n", total)
+	if config.onlyScan {
+		return
+	}
 
 	txOutputAmount, txWeightInBytes, err := sweeper.GetSweepTxAmountAndWeightInBytes(utxos)
 	if err != nil {
@@ -145,9 +181,34 @@ func doRecovery(
 
 	sayBlock(`
 		Transaction sent! You can check the status here: https://mempool.space/tx/%v
-		(it will appear in Blockstream after a short delay)
+		(it will appear in mempool.space after a short delay)
 
 	`, sweepTx.TxHash().String())
+}
+
+func validateProvidedElectrum(providedElectrum string) {
+	client := electrum.NewClient(false)
+	err := client.Connect(providedElectrum)
+	defer func(client *electrum.Client) {
+		_ = client.Disconnect()
+	}(client)
+
+	if err != nil {
+		sayBlock(`
+				{red Error!}
+				The Recovery Tool couldn't connect to the provided Electrum server %v.
+
+				If the problem persists, contact {blue support@muun.com}.
+				
+				――― {white error report} ―――
+				%v
+				――――――――――――――――――――
+
+				We're always there to help.
+			`, providedElectrum, err)
+
+		os.Exit(2)
+	}
 }
 
 func exitWithError(err error) {
@@ -351,7 +412,7 @@ func readAddress() btcutil.Address {
 func readFee(totalBalance, weight int64) int64 {
 	sayBlock(`
 		{yellow Enter the fee rate (sats/byte)}
-		Your transaction weighs %v bytes. You can get suggestions in https://bitcoinfees.earn.com/#fees
+		Your transaction weighs %v bytes. You can get suggestions in https://mempool.space/ under "Transaction fees".
 	`, weight)
 
 	var userInput string

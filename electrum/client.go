@@ -36,6 +36,7 @@ type Client struct {
 	nextRequestID int
 	conn          net.Conn
 	log           *utils.Logger
+	requireTls    bool
 }
 
 // Request models the structure of all Electrum protocol requests.
@@ -110,9 +111,10 @@ type ServerFeatures struct {
 type Param = interface{}
 
 // NewClient creates an initialized Client instance.
-func NewClient() *Client {
+func NewClient(requireTls bool) *Client {
 	return &Client{
-		log: utils.NewLogger(defaultLoggerTag),
+		log:        utils.NewLogger(defaultLoggerTag),
+		requireTls: requireTls,
 	}
 }
 
@@ -334,6 +336,9 @@ func (c *Client) ListUnspentBatch(indexHashes []string) ([][]UnspentRef, error) 
 }
 
 func (c *Client) establishConnection() error {
+	// We first try to connect over TCP+TLS
+	// If we fail and requireTls is false, we try over TCP
+
 	// TODO: check if insecure is necessary
 	config := &tls.Config{
 		InsecureSkipVerify: true,
@@ -343,12 +348,22 @@ func (c *Client) establishConnection() error {
 		Timeout: connectionTimeout,
 	}
 
-	conn, err := tls.DialWithDialer(dialer, "tcp", c.Server, config)
+	tlsConn, err := tls.DialWithDialer(dialer, "tcp", c.Server, config)
+	if err == nil {
+		c.conn = tlsConn
+		return nil
+	}
+	if c.requireTls {
+		return err
+	}
+
+	conn, err := net.DialTimeout("tcp", c.Server, connectionTimeout)
 	if err != nil {
 		return err
 	}
 
 	c.conn = conn
+
 	return nil
 }
 
