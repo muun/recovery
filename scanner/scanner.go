@@ -9,7 +9,6 @@ import (
 	"github.com/muun/recovery/utils"
 )
 
-const electrumPoolSize = 6
 const taskTimeout = 15 * time.Minute
 const batchSize = 100
 
@@ -70,10 +69,10 @@ type scanContext struct {
 }
 
 // NewScanner creates an initialized Scanner.
-func NewScanner() *Scanner {
+func NewScanner(connectionPool *electrum.Pool, electrumProvider *electrum.ServerProvider) *Scanner {
 	return &Scanner{
-		pool:    electrum.NewPool(electrumPoolSize),
-		servers: electrum.NewServerProvider(),
+		pool:    connectionPool,
+		servers: electrumProvider,
 		log:     utils.NewLogger("Scanner"),
 	}
 }

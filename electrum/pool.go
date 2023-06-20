@@ -7,11 +7,11 @@ type Pool struct {
 }
 
 // NewPool creates an initialized Pool with a `size` number of clients.
-func NewPool(size int) *Pool {
+func NewPool(size int, requireTls bool) *Pool {
 	nextClient := make(chan *Client, size)
 
 	for i := 0; i < size; i++ {
-		nextClient <- NewClient()
+		nextClient <- NewClient(requireTls)
 	}
 
 	return &Pool{nextClient}

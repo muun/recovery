@@ -47,7 +47,7 @@ type surveyTask struct {
 }
 
 // Values to check whether we're in the same chain (in a previous version, SV servers snuck in)
-var mainnetSomeTx = "1712426823cc94935287a6834f7982723fbb5c808cbe00ec2cf3f582582be4c5"
+var mainnetSomeTx = "985eb411473fa1bbd73efa5e3685edc00366c86b8d4d3f5b969ad59c23f4d959"
 var mainnetGenesisHash = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
 
 func NewSurvey(config *Config) *Survey {
@@ -194,7 +194,7 @@ func (s *Survey) processTask(task *surveyTask) *Result {
 
 // testConnection returns the server implementation, protocol version and time to connect
 func testConnection(task *surveyTask) (string, string, time.Duration, error) {
-	client := electrum.NewClient()
+	client := electrum.NewClient(true)
 
 	start := time.Now()
 	err := client.Connect(task.server)
@@ -207,7 +207,7 @@ func testConnection(task *surveyTask) (string, string, time.Duration, error) {
 
 // testsBlockchain returns whether this server is operating on Bitcoin mainnet
 func testBitcoinMainnet(task *surveyTask) (bool, error) {
-	client := electrum.NewClient()
+	client := electrum.NewClient(true)
 
 	err := client.Connect(task.server)
 	if err != nil {
@@ -229,7 +229,7 @@ func testBitcoinMainnet(task *surveyTask) (bool, error) {
 
 // testBatchSupport returns whether the server successfully responded to a batched request
 func testBatchSupport(task *surveyTask) (bool, error) {
-	client := electrum.NewClient()
+	client := electrum.NewClient(true)
 
 	err := client.Connect(task.server)
 	if err != nil {
@@ -247,7 +247,7 @@ func testBatchSupport(task *surveyTask) (bool, error) {
 // measureSpeed returns the amount of successful ListUnspentBatch calls in SPEED_TEST_DURATION
 // seconds. It assumes batch support was verified beforehand.
 func (s *Survey) measureSpeed(task *surveyTask) (int, error) {
-	client := electrum.NewClient()
+	client := electrum.NewClient(true)
 
 	err := client.Connect(task.server)
 	if err != nil {
@@ -273,7 +273,7 @@ func (s *Survey) measureSpeed(task *surveyTask) (int, error) {
 
 // getPeers returns the list of peers from a server, or empty if it doesn't responds to the request
 func getPeers(task *surveyTask) ([]string, error) {
-	client := electrum.NewClient()
+	client := electrum.NewClient(true)
 
 	err := client.Connect(task.server)
 	if err != nil {
