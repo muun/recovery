@@ -1,9 +1,13 @@
+## workspace
 # github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 github.com/aead/chacha20
 github.com/aead/chacha20/chacha
 # github.com/aead/siphash v1.0.1
 github.com/aead/siphash
+# github.com/btcsuite/btcd v0.20.1-beta.0.20200515232429-9f0179fd2c46
+## explicit; go 1.12
 # github.com/btcsuite/btcd v0.21.0-beta
+## explicit; go 1.12
 github.com/btcsuite/btcd/addrmgr
 github.com/btcsuite/btcd/blockchain
 github.com/btcsuite/btcd/btcec
@@ -20,6 +24,7 @@ github.com/btcsuite/btcd/wire
 # github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f
 github.com/btcsuite/btclog
 # github.com/btcsuite/btcutil v1.0.2
+## explicit; go 1.13
 github.com/btcsuite/btcutil
 github.com/btcsuite/btcutil/base58
 github.com/btcsuite/btcutil/bech32
@@ -28,8 +33,10 @@ github.com/btcsuite/btcutil/gcs/builder
 github.com/btcsuite/btcutil/hdkeychain
 github.com/btcsuite/btcutil/txsort
 # github.com/btcsuite/btcutil/psbt v1.0.2
+## go 1.13
 github.com/btcsuite/btcutil/psbt
 # github.com/btcsuite/btcwallet v0.11.1-0.20200612012534-48addcd5591a
+## go 1.13
 github.com/btcsuite/btcwallet/chain
 github.com/btcsuite/btcwallet/internal/legacy/keystore
 github.com/btcsuite/btcwallet/internal/legacy/rename
@@ -39,16 +46,21 @@ github.com/btcsuite/btcwallet/snacl
 github.com/btcsuite/btcwallet/waddrmgr
 github.com/btcsuite/btcwallet/wallet
 # github.com/btcsuite/btcwallet/wallet/txauthor v1.0.0
+## go 1.12
 github.com/btcsuite/btcwallet/wallet/txauthor
 # github.com/btcsuite/btcwallet/wallet/txrules v1.0.0
+## go 1.12
 github.com/btcsuite/btcwallet/wallet/txrules
 # github.com/btcsuite/btcwallet/wallet/txsizes v1.0.0
+## go 1.12
 github.com/btcsuite/btcwallet/wallet/txsizes
 # github.com/btcsuite/btcwallet/walletdb v1.3.3
+## go 1.12
 github.com/btcsuite/btcwallet/walletdb
 github.com/btcsuite/btcwallet/walletdb/bdb
 github.com/btcsuite/btcwallet/walletdb/migration
 # github.com/btcsuite/btcwallet/wtxmgr v1.2.0
+## go 1.12
 github.com/btcsuite/btcwallet/wtxmgr
 # github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd
 github.com/btcsuite/go-socks/socks
@@ -57,18 +69,24 @@ github.com/btcsuite/websocket
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/decred/dcrd/lru v1.0.0
+## go 1.11
 github.com/decred/dcrd/lru
 # github.com/fiatjaf/go-lnurl v1.3.1
+## explicit; go 1.14
 github.com/fiatjaf/go-lnurl
 # github.com/go-errors/errors v1.0.1
 github.com/go-errors/errors
 # github.com/gookit/color v1.4.2
+## explicit; go 1.12
 github.com/gookit/color
 # github.com/hhrutter/lzw v0.0.0-20190829144645-6f07a24e8650
+## go 1.12
 github.com/hhrutter/lzw
 # github.com/hhrutter/tiff v0.0.0-20190829141212-736cae8d0bc7
+## go 1.12
 github.com/hhrutter/tiff
 # github.com/jinzhu/gorm v1.9.16
+## explicit; go 1.12
 github.com/jinzhu/gorm
 github.com/jinzhu/gorm/dialects/sqlite
 # github.com/jinzhu/inflection v1.0.0
@@ -78,8 +96,10 @@ github.com/jrick/logrotate/rotator
 # github.com/kkdai/bstream v0.0.0-20181106074824-b3251f7901ec
 github.com/kkdai/bstream
 # github.com/lightninglabs/gozmq v0.0.0-20191113021534-d20a764486bf
+## go 1.12
 github.com/lightninglabs/gozmq
 # github.com/lightninglabs/neutrino v0.11.1-0.20200316235139-bffc52e8f200 => github.com/muun/neutrino v0.0.0-20190914162326-7082af0fa257
+## go 1.13
 github.com/lightninglabs/neutrino
 github.com/lightninglabs/neutrino/banman
 github.com/lightninglabs/neutrino/blockntfns
@@ -91,8 +111,10 @@ github.com/lightninglabs/neutrino/headerfs
 github.com/lightninglabs/neutrino/headerlist
 github.com/lightninglabs/neutrino/pushtx
 # github.com/lightningnetwork/lightning-onion v1.0.1
+## explicit; go 1.13
 github.com/lightningnetwork/lightning-onion
 # github.com/lightningnetwork/lnd v0.10.4-beta
+## explicit; go 1.12
 github.com/lightningnetwork/lnd/build
 github.com/lightningnetwork/lnd/chainntnfs
 github.com/lightningnetwork/lnd/channeldb
@@ -117,8 +139,10 @@ github.com/lightningnetwork/lnd/tlv
 github.com/lightningnetwork/lnd/tor
 github.com/lightningnetwork/lnd/zpay32
 # github.com/lightningnetwork/lnd/clock v1.0.1
+## go 1.13
 github.com/lightningnetwork/lnd/clock
 # github.com/lightningnetwork/lnd/queue v1.0.4
+## go 1.12
 github.com/lightningnetwork/lnd/queue
 # github.com/lightningnetwork/lnd/ticker v1.0.0
 github.com/lightningnetwork/lnd/ticker
@@ -127,29 +151,15 @@ github.com/ltcsuite/ltcd/chaincfg
 github.com/ltcsuite/ltcd/chaincfg/chainhash
 github.com/ltcsuite/ltcd/wire
 # github.com/mattn/go-sqlite3 v1.14.0
+## go 1.10
 github.com/mattn/go-sqlite3
 # github.com/miekg/dns v1.1.29
+## explicit; go 1.12
 github.com/miekg/dns
-# github.com/muun/libwallet v0.11.0
-github.com/muun/libwallet
-github.com/muun/libwallet/addresses
-github.com/muun/libwallet/aescbc
-github.com/muun/libwallet/btcsuitew/bech32m
-github.com/muun/libwallet/btcsuitew/btcutilw
-github.com/muun/libwallet/btcsuitew/chainhashw
-github.com/muun/libwallet/btcsuitew/txscriptw
-github.com/muun/libwallet/emergencykit
-github.com/muun/libwallet/errors
-github.com/muun/libwallet/fees
-github.com/muun/libwallet/hdpath
-github.com/muun/libwallet/keycrypt
-github.com/muun/libwallet/lnurl
-github.com/muun/libwallet/musig
-github.com/muun/libwallet/recoverycode
-github.com/muun/libwallet/sphinx
-github.com/muun/libwallet/swaps
-github.com/muun/libwallet/walletdb
+# github.com/muun/libwallet v0.11.0 => ./libwallet
+## explicit; go 1.14
 # github.com/pdfcpu/pdfcpu v0.3.11
+## explicit; go 1.15
 github.com/pdfcpu/pdfcpu/internal/config
 github.com/pdfcpu/pdfcpu/internal/corefont/metrics
 github.com/pdfcpu/pdfcpu/pkg/api
@@ -160,18 +170,26 @@ github.com/pdfcpu/pdfcpu/pkg/pdfcpu
 github.com/pdfcpu/pdfcpu/pkg/pdfcpu/validate
 github.com/pdfcpu/pdfcpu/pkg/types
 # github.com/pkg/errors v0.9.1
+## explicit
 github.com/pkg/errors
+# github.com/shopspring/decimal v1.2.0
+## explicit; go 1.13
+github.com/shopspring/decimal
 # github.com/tidwall/gjson v1.6.0
+## go 1.12
 github.com/tidwall/gjson
 # github.com/tidwall/match v1.0.1
 github.com/tidwall/match
 # github.com/tidwall/pretty v1.0.0
 github.com/tidwall/pretty
 # github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778
+## go 1.15
 github.com/xo/terminfo
 # go.etcd.io/bbolt v1.3.5-0.20200615073812-232d8fc87f50
+## go 1.12
 go.etcd.io/bbolt
 # golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+## explicit; go 1.17
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/internal/poly1305
@@ -183,12 +201,14 @@ golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb
+## go 1.12
 golang.org/x/image/ccitt
 golang.org/x/image/riff
 golang.org/x/image/vp8
 golang.org/x/image/vp8l
 golang.org/x/image/webp
 # golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
+## explicit; go 1.17
 golang.org/x/net/bpf
 golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
@@ -196,18 +216,26 @@ golang.org/x/net/internal/socks
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/proxy
+# golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+## explicit
 # golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6
+## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
+## go 1.11
 golang.org/x/term
 # golang.org/x/text v0.3.7
+## explicit; go 1.17
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
+# golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+## explicit; go 1.11
 # google.golang.org/protobuf v1.25.0
+## explicit; go 1.9
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
@@ -235,6 +263,10 @@ google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 # gopkg.in/gormigrate.v1 v1.6.0
+## explicit
 gopkg.in/gormigrate.v1
 # gopkg.in/yaml.v2 v2.4.0
+## go 1.15
 gopkg.in/yaml.v2
+# golang.org/x/mobile => github.com/muun/mobile v0.0.0-20220913162405-8cc629edd37b
+# github.com/lightninglabs/neutrino => github.com/muun/neutrino v0.0.0-20190914162326-7082af0fa257
