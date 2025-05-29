@@ -7,7 +7,7 @@ To build the tool locally and run it, you must:
 
     ```
     git clone https://github.com/muun/recovery
-    cd recovery
+    cd recovery/recovery_tool
     ```
       
 3. Run the tool with:
